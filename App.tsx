@@ -130,9 +130,9 @@ const App: React.FC = () => {
   const showMap = !isFormVisible && !isEditing;
 
   return (
-    <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex flex-col font-sans transition-colors duration-500">
+    <div className="min-h-screen bg-stone-50 bg-starry flex flex-col font-sans transition-colors duration-500">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200 dark:border-stone-800 sticky top-0 z-30 transition-colors">
+      <header className="bg-white/80 dark:bg-stone-900/60 backdrop-blur-md border-b border-stone-200 dark:border-stone-800/50 sticky top-0 z-30 transition-colors">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setIsFormVisible(true); setItinerary(null); setIsEditing(false); }}>
             <div className="bg-emerald-800 dark:bg-emerald-700 p-2 rounded-full text-white shadow-lg group-hover:shadow-emerald-900/20 transition-all duration-300">
@@ -147,7 +147,7 @@ const App: React.FC = () => {
             </div>
             <button 
               onClick={toggleTheme}
-              className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-600 dark:text-stone-400 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+              className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800/50 text-stone-600 dark:text-stone-400 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
             >
               {getThemeIcon()}
             </button>
@@ -219,7 +219,7 @@ const App: React.FC = () => {
           {/* Right Panel: Map */}
           {/* Only rendered if showMap is true */}
           {showMap && (
-            <div className={`lg:col-span-8 h-full rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/20 border border-stone-200 dark:border-stone-800 relative bg-stone-100 dark:bg-stone-900 ${activeTab === 'plan' ? 'hidden lg:block' : 'block'}`}>
+            <div className={`lg:col-span-8 h-full rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/40 border border-stone-200 dark:border-stone-800/50 relative bg-stone-100 dark:bg-stone-900/50 ${activeTab === 'plan' ? 'hidden lg:block' : 'block'}`}>
                <MapDisplay itinerary={itinerary} selectedDay={selectedDay} />
             </div>
           )}
@@ -229,7 +229,7 @@ const App: React.FC = () => {
 
       {/* Mobile Tab Bar (Only show if map is available) */}
       {showMap && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-stone-900/90 backdrop-blur border-t border-stone-200 dark:border-stone-800 p-2 flex justify-around z-50 safe-area-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-stone-900/80 backdrop-blur-md border-t border-stone-200 dark:border-stone-800 p-2 flex justify-around z-50 safe-area-bottom">
           <button 
             onClick={() => setActiveTab('plan')}
             className={`flex flex-col items-center p-2 rounded-full flex-1 transition-colors ${
