@@ -1,0 +1,5 @@
+{
+  "name": "WanderPlan",
+  "description": "一个智能旅游规划师，利用Gemini AI生成每日详细行程，并提供交互式世界地图可视化。",
+  "requestFramePermissions": []
+}
