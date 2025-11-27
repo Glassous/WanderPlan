@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [isFormVisible, setIsFormVisible] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
-  // Edit State (Lifted Up)
+  // Edit State
   const [isEditing, setIsEditing] = useState(false);
 
   // Load History on Mount
@@ -125,6 +125,10 @@ const App: React.FC = () => {
     }
   };
 
+  // Logic to determine if map should be shown
+  // Map is hidden on Homepage (isFormVisible) AND during Editing
+  const showMap = !isFormVisible && !isEditing;
+
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 flex flex-col font-sans transition-colors duration-500">
       {/* Header */}
@@ -153,15 +157,19 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1800px] mx-auto w-full">
-        {/* Layout Grid: Changes based on Editing Mode */}
-        <div className={`grid grid-cols-1 ${isEditing ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-8 h-[calc(100vh-8rem)] min-h-[600px] transition-all duration-500 ease-in-out`}>
+        {/* 
+          Layout Logic:
+          - Homepage (Form Visible) OR Editing: Single column, centered content.
+          - Result View (Map Visible): 12-column grid for split view.
+        */}
+        <div className={`grid grid-cols-1 ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} gap-8 h-[calc(100vh-8rem)] min-h-[600px] transition-all duration-500 ease-in-out`}>
           
-          {/* Left Panel: Form or Itinerary */}
-          {/* If Editing: Takes full width (max-w-4xl mx-auto for readability). If Not: Takes 4 cols */}
+          {/* Main Panel (Form / Itinerary List) */}
           <div className={`
             flex flex-col gap-6 overflow-hidden transition-all duration-500
-            ${isEditing ? 'lg:col-span-1 max-w-5xl mx-auto w-full' : 'lg:col-span-4'}
-            ${activeTab === 'map' && !isEditing ? 'hidden lg:flex' : 'flex'}
+            ${showMap ? 'lg:col-span-4' : 'max-w-4xl mx-auto w-full'}
+            ${/* Mobile: Hide this panel if map tab is active AND map is available */
+              activeTab === 'map' && showMap ? 'hidden lg:flex' : 'flex'}
           `}>
             
             {isFormVisible ? (
@@ -209,8 +217,8 @@ const App: React.FC = () => {
           </div>
 
           {/* Right Panel: Map */}
-          {/* Hidden when Editing */}
-          {!isEditing && (
+          {/* Only rendered if showMap is true */}
+          {showMap && (
             <div className={`lg:col-span-8 h-full rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/20 border border-stone-200 dark:border-stone-800 relative bg-stone-100 dark:bg-stone-900 ${activeTab === 'plan' ? 'hidden lg:block' : 'block'}`}>
                <MapDisplay itinerary={itinerary} selectedDay={selectedDay} />
             </div>
@@ -219,8 +227,8 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Mobile Tab Bar (Only show if NOT editing) */}
-      {!isEditing && (
+      {/* Mobile Tab Bar (Only show if map is available) */}
+      {showMap && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-stone-900/90 backdrop-blur border-t border-stone-200 dark:border-stone-800 p-2 flex justify-around z-50 safe-area-bottom">
           <button 
             onClick={() => setActiveTab('plan')}
