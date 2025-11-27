@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -92,35 +93,6 @@
       }
       .animate-fade-in {
         animation: fadeIn 0.5s ease-out forwards;
-      }
-
-      /* Starry Sky Background Logic */
-      .dark .bg-starry {
-        background-color: #0c0a09; /* stone-950 base */
-        background-image: 
-          /* Subtle Nebulas using Brand Colors */
-          radial-gradient(circle at 15% 50%, rgba(6, 95, 70, 0.15), transparent 40%), /* Emerald glow */
-          radial-gradient(circle at 85% 30%, rgba(245, 158, 11, 0.08), transparent 45%), /* Amber glow */
-          /* Stars layers - standardized syntax: radial-gradient(circle at X Y, color size, color size) */
-          radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8) 1.5px, transparent 1.5px),
-          radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6) 1px, transparent 1px),
-          radial-gradient(circle at 30% 30%, rgba(255,255,255,0.7) 1.5px, transparent 1.5px),
-          radial-gradient(circle at 40% 40%, rgba(255,255,255,0.9) 1px, transparent 1px),
-          radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5) 1.5px, transparent 1.5px),
-          radial-gradient(circle at 60% 60%, rgba(255,255,255,0.8) 1px, transparent 1px),
-          radial-gradient(circle at 70% 70%, rgba(255,255,255,0.6) 1.5px, transparent 1.5px),
-          radial-gradient(circle at 80% 80%, rgba(255,255,255,0.7) 1px, transparent 1px),
-          radial-gradient(circle at 90% 90%, rgba(255,255,255,0.5) 1.5px, transparent 1.5px);
-        background-size: 
-          100% 100%, 100% 100%, /* Gradients */
-          550px 550px, 350px 350px, 250px 250px, 450px 450px, 650px 650px, 300px 300px, 500px 500px, 400px 400px, 600px 600px; /* Stars repeat size */
-        background-attachment: fixed; /* Ensures stars cover full screen even on scroll */
-        animation: starry-move 120s linear infinite;
-      }
-
-      @keyframes starry-move {
-        from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0; }
-        to { background-position: 0 0, 0 0, 550px 550px, 350px 350px, 250px 250px, 450px 450px, 650px 650px, 300px 300px, 500px 500px, 400px 400px, 600px 600px; }
       }
     </style>
   <script type="importmap">

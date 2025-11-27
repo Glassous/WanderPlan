@@ -1,3 +1,4 @@
+
 export interface LocationCoordinates {
   latitude: number;
   longitude: number;
@@ -23,6 +24,7 @@ export interface Itinerary {
   tripTitle: string;
   summary: string;
   days: DayPlan[];
+  visualTheme: string; // New field for background theme
 }
 
 export interface TripFormData {
