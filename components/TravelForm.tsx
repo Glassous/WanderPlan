@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { TripFormData, Itinerary } from '../types';
-import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload } from 'lucide-react';
+import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock } from 'lucide-react';
 
 interface TravelFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -15,7 +15,7 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
     duration: 5,
-    travelers: '情侣/夫妻',
+    travelers: '',
     budget: '中等',
     interests: '',
     startTime: '',
@@ -32,10 +32,15 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
     onSubmit(formData);
   };
 
-  const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border-0 border-b-2 border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-2 py-3 transition-colors rounded-t-sm text-stone-800 dark:text-stone-100 placeholder-stone-400";
+  const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
   const [view, setView] = useState<'plan' | 'history'>('plan');
   const importInputRef = useRef<HTMLInputElement>(null);
+  const budgetPlaceholders: Record<string, string> = {
+    '经济型': '例如：偏向公交与步行，小吃街与公园，免费或低价景点',
+    '中等': '例如：经典必去景点+本地特色餐厅，适度购物与文化体验',
+    '奢华': '例如：米其林餐厅，高端SPA，精品酒店下午茶与私享导览'
+  };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,31 +75,33 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
             定制您的旅程
           </span>
         </h2>
-        <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50">
-          <button
-            type="button"
-            onClick={() => setView('plan')}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'plan' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
-          >
-            规划
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('history')}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex items-center gap-1 ${view === 'history' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
-          >
-            <HistoryIcon size={14} /> 历史记录
-          </button>
-        </div>
-        <div className="flex items-center ml-3">
-          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
-          <button
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50 flex items-center gap-1"
-          >
-            <Upload size={14} /> 导入
-          </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50">
+            <button
+              type="button"
+              onClick={() => setView('plan')}
+              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'plan' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
+            >
+              规划
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('history')}
+              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex items-center gap-1 ${view === 'history' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
+            >
+              <HistoryIcon size={14} /> 历史记录
+            </button>
+          </div>
+          <div className="flex items-center">
+            <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+            <button
+              type="button"
+              onClick={() => importInputRef.current?.click()}
+              className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50 flex items-center gap-1"
+            >
+              <Upload size={14} /> 导入
+            </button>
+          </div>
         </div>
       </div>
       {view === 'plan' ? (
@@ -117,39 +124,70 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
           </div>
         </div>
 
-        {/* Duration & Travelers */}
-        <div className="grid grid-cols-2 gap-8">
-          <div>
-            <label className={labelClasses}>天数</label>
-            <div className="relative">
-              <input
-                type="number"
-                name="duration"
-                min="1"
-                max="30"
-                required
-                value={formData.duration}
-                onChange={handleChange}
-                className={inputClasses}
-              />
-              <span className="absolute right-3 top-3 text-sm text-stone-400 pointer-events-none">Days</span>
-            </div>
+        {/* Duration (Standalone) */}
+        <div>
+          <label className={labelClasses}>天数</label>
+          <div className="relative">
+            <input
+              type="number"
+              name="duration"
+              min="1"
+              max="30"
+              required
+              value={formData.duration}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+            <span className="absolute right-3 top-3 text-sm text-stone-400 pointer-events-none">Days</span>
           </div>
-          <div>
-            <label className={labelClasses}>同行者</label>
-            <div className="relative">
-               <select
-                name="travelers"
-                value={formData.travelers}
-                onChange={handleChange}
-                className={inputClasses}
+          <div className="flex gap-2 mt-2">
+            {[3,5,7,10].map(d => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, duration: d }))}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  formData.duration === d ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
+                }`}
               >
-                <option value="独自一人">独自一人</option>
-                <option value="情侣/夫妻">情侣/夫妻</option>
-                <option value="家庭出游">家庭出游</option>
-                <option value="朋友结伴">朋友结伴</option>
-              </select>
-            </div>
+                {d} 天
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Travelers (Standalone) */}
+        <div>
+          <label className={labelClasses}>同行者</label>
+          <input
+            type="text"
+            name="travelers"
+            value={formData.travelers}
+            onChange={handleChange}
+            placeholder="自定义填写，如：独自一人 / 情侣 / 家庭出游"
+            className={inputClasses}
+          />
+          <div className="grid grid-cols-2 gap-3 mt-2">
+            {[
+              { label: '独自一人', icon: <User size={16} /> },
+              { label: '情侣/夫妻', icon: <Heart size={16} /> },
+              { label: '家庭出游', icon: <Users size={16} /> },
+              { label: '朋友结伴', icon: <Users size={16} /> },
+            ].map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, travelers: opt.label }))}
+                className={`py-2 px-4 rounded-xl text-sm font-medium transition-all flex items-center gap-2 justify-center ${
+                  formData.travelers === opt.label 
+                    ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow-lg' 
+                    : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700/50'
+                }`}
+              >
+                {opt.icon}
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -164,6 +202,20 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
                 onChange={handleChange}
                 className={inputClasses}
               />
+             <div className="flex gap-2 mt-2">
+               {["08:00","10:00","14:00"].map(t => (
+                 <button
+                   key={t}
+                   type="button"
+                   onClick={() => setFormData(prev => ({ ...prev, startTime: t }))}
+                   className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
+                     formData.startTime === t ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
+                   }`}
+                 >
+                   <Clock size={12} /> {t}
+                 </button>
+               ))}
+             </div>
           </div>
           <div>
              <label className={labelClasses}>末日返程 (可选)</label>
@@ -174,6 +226,20 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
                 onChange={handleChange}
                 className={inputClasses}
               />
+             <div className="flex gap-2 mt-2">
+               {["16:00","18:00","20:00"].map(t => (
+                 <button
+                   key={t}
+                   type="button"
+                   onClick={() => setFormData(prev => ({ ...prev, endTime: t }))}
+                   className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
+                     formData.endTime === t ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
+                   }`}
+                 >
+                   <Clock size={12} /> {t}
+                 </button>
+               ))}
+             </div>
           </div>
         </div>
 
@@ -204,9 +270,19 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
           <textarea
             name="interests"
             rows={3}
-            placeholder="例如：想要体验米其林餐厅，参观小众博物馆..."
+            placeholder={budgetPlaceholders[formData.budget] || '例如：想要体验米其林餐厅，参观小众博物馆...'}
             value={formData.interests}
             onChange={handleChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Tab') {
+                const ph = (e.currentTarget.placeholder || '');
+                const sanitized = ph.replace(/^例如[:：]\s*/i, '').replace(/\.\.\.$/, '');
+                if (!formData.interests.trim()) {
+                  e.preventDefault();
+                  setFormData(prev => ({ ...prev, interests: sanitized }));
+                }
+              }
+            }}
             className={`${inputClasses} resize-none`}
           />
         </div>

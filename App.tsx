@@ -205,18 +205,18 @@ const App: React.FC = () => {
             - Homepage (Form Visible) OR Editing: Single column, centered content.
             - Result View (Map Visible): 12-column grid for split view.
           */}
-          <div className={`grid grid-cols-1 ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} gap-8 h-[calc(100vh-8rem)] min-h-[600px] transition-all duration-500 ease-in-out`}>
+          <div className={`grid grid-cols-1 ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} gap-8 ${showMap ? 'h-[calc(100vh-8rem)]' : 'h-auto'} min-h-[600px] transition-all duration-500 ease-in-out`}>
             
             {/* Main Panel (Form / Itinerary List) */}
             <div className={`
-              flex flex-col gap-6 overflow-hidden transition-all duration-500
+              flex flex-col gap-6 ${showMap ? 'overflow-hidden' : 'overflow-visible'} transition-all duration-500
               ${showMap ? 'lg:col-span-4' : 'max-w-4xl mx-auto w-full'}
               ${/* Mobile: Hide this panel if map tab is active AND map is available */
                 activeTab === 'map' && showMap ? 'hidden lg:flex' : 'flex'}
             `}>
               
               {isFormVisible ? (
-                <div className="flex flex-col h-full overflow-hidden">
+                <div className="flex flex-col h-full overflow-visible">
                   <div className="flex-shrink-0 animate-fade-in mb-8">
                     <TravelForm 
                       onSubmit={handleFormSubmit} 
