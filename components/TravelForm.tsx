@@ -42,6 +42,34 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
     '奢华': '例如：米其林餐厅，高端SPA，精品酒店下午茶与私享导览'
   };
 
+  const budgetPresets: Record<string, string[]> = {
+    '经济型': [
+      '街头美食与本地市集',
+      '免费博物馆与公园散步',
+      '公交+步行优先，节约交通成本'
+    ],
+    '中等': [
+      '经典景点与特色餐厅搭配',
+      '文化体验与小众博物馆',
+      '适度购物与咖啡馆休憩'
+    ],
+    '奢华': [
+      '米其林餐厅与高端SPA',
+      '精品酒店下午茶体验',
+      '私人导览与包车移动'
+    ]
+  };
+
+  const applyPreset = (text: string) => {
+    setFormData(prev => {
+      const current = (prev.interests || '').trim();
+      if (!current) return { ...prev, interests: text };
+      if (current.includes(text)) return prev;
+      const sep = /[；;，,]\s*$/.test(current) ? '' : '；';
+      return { ...prev, interests: `${current}${sep}${text}` };
+    });
+  };
+
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -285,6 +313,18 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
             }}
             className={`${inputClasses} resize-none`}
           />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {(budgetPresets[formData.budget] || budgetPresets['中等']).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-stone-100 dark:bg-stone-800/50 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700/50 border border-stone-200 dark:border-stone-700/50"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
         </div>
 
           <button
