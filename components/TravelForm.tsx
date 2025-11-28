@@ -488,8 +488,28 @@ const TravelForm: React.FC<TravelFormProps> = ({
               placeholder="搜索社区行程标题"
               value={communityQuery}
               onChange={(e) => setCommunityQuery(e.target.value)}
-              className="w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-2 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400"
+              className="flex-1 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-2 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400"
             />
+            <button
+              type="button"
+              onClick={() => {
+                // 清除缓存并重新获取社区数据
+                localStorage.removeItem(CACHE_KEY);
+                setCommunityLoading(true);
+                listCommunityItems(50)
+                  .then(items => {
+                    setCommunity(items);
+                    // 更新缓存
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
+                  })
+                  .catch(() => setCommunity([]))
+                  .finally(() => setCommunityLoading(false));
+              }}
+              className="p-2 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 hover:border-emerald-600 dark:hover:border-emerald-500 transition-colors rounded-xl text-stone-600 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+              title="刷新社区"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            </button>
           </div>
           {communityLoading ? (
             <div className="text-sm text-stone-400 dark:text-stone-500 italic">加载社区内容中…</div>
