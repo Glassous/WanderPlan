@@ -26,6 +26,7 @@ const App: React.FC = () => {
   
   // Edit State
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Load History on Mount
   useEffect(() => {
@@ -156,14 +157,21 @@ const App: React.FC = () => {
 
   const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('确定要删除这条行程记录吗？')) {
-      setHistory(prev => prev.filter(item => item.id !== id));
-      if (itinerary?.id === id) {
-        setItinerary(null);
-        setIsFormVisible(true);
-      }
-    }
+    setConfirmDeleteId(id);
   };
+
+  const confirmDelete = () => {
+    if (!confirmDeleteId) return;
+    const id = confirmDeleteId;
+    setHistory(prev => prev.filter(item => item.id !== id));
+    if (itinerary?.id === id) {
+      setItinerary(null);
+      setIsFormVisible(true);
+    }
+    setConfirmDeleteId(null);
+  };
+
+  const cancelDelete = () => setConfirmDeleteId(null);
 
   // Logic to determine if map should be shown
   const showMap = !isFormVisible && !isEditing;
@@ -291,6 +299,26 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 backdrop-blur-sm bg-stone-950/30" onClick={cancelDelete}></div>
+          <div className="relative bg-white dark:bg-stone-900/80 backdrop-blur-md rounded-3xl border border-stone-100 dark:border-stone-800/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] p-8 w-[90%] max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+                <span className="font-serif font-bold">!</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">删除确认</h3>
+            </div>
+            <p className="text-sm text-stone-600 dark:text-stone-300 mb-6">
+              确定要删除这条行程记录吗？此操作不可恢复。
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={cancelDelete} className="px-4 py-2 rounded-full text-sm font-medium bg-stone-100 dark:bg-stone-800/50 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700/50 border border-stone-200 dark:border-stone-700/50">取消</button>
+              <button onClick={confirmDelete} className="px-5 py-2 rounded-full text-sm font-medium bg-red-600 hover:bg-red-700 text-white shadow">删除</button>
+            </div>
+          </div>
+        </div>
+      )}
     </ThemeBackground>
   );
 };

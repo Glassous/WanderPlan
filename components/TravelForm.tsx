@@ -34,7 +34,7 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
 
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
-  const [view, setView] = useState<'plan' | 'history'>('plan');
+  const [view, setView] = useState<'plan' | 'history' | 'custom'>('plan');
   const importInputRef = useRef<HTMLInputElement>(null);
   const budgetPlaceholders: Record<string, string> = {
     '经济型': '例如：偏向公交与步行，小吃街与公园，免费或低价景点',
@@ -111,6 +111,13 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
               className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'plan' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
             >
               规划
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('custom')}
+              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'custom' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
+            >
+              自定义
             </button>
             <button
               type="button"
@@ -345,7 +352,7 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
             )}
           </button>
         </form>
-      ) : (
+      ) : view === 'history' ? (
         <div className="space-y-4">
           {history.length === 0 ? (
             <div className="text-sm text-stone-400 dark:text-stone-500 italic">暂无历史记录</div>
@@ -377,6 +384,60 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
               ))}
             </div>
           )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div>
+            <label className={labelClasses}>行程标题</label>
+            <input
+              type="text"
+              placeholder="例如：东京美食与文化之旅"
+              value={(formData as any).manualTitle || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, manualTitle: e.target.value } as any))}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className={labelClasses}>天数</label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={(formData as any).manualDays ?? 5}
+              onChange={(e) => setFormData(prev => ({ ...prev, manualDays: Number(e.target.value || 1) } as any))}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className={labelClasses}>行程简介（可选）</label>
+            <textarea
+              rows={3}
+              placeholder="简单描述此行程的主题与风格"
+              value={(formData as any).manualSummary || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, manualSummary: e.target.value } as any))}
+              className={`${inputClasses} resize-none`}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const daysCount = (formData as any).manualDays ?? 5;
+              const title = (formData as any).manualTitle || '自定义行程';
+              const summary = (formData as any).manualSummary || '';
+              const manual: Itinerary = {
+                id: (crypto as any).randomUUID?.() || `${Date.now()}`,
+                createdAt: Date.now(),
+                tripTitle: title,
+                summary,
+                days: Array.from({ length: Math.max(1, Number(daysCount)) }, (_, i) => ({ day: i + 1, theme: '', activities: [] })),
+                visualTheme: 'default'
+              };
+              onImportItinerary(manual);
+            }}
+            className="w-full py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 bg-emerald-800 hover:bg-emerald-900"
+          >
+            创建空白行程
+          </button>
         </div>
       )}
     </div>

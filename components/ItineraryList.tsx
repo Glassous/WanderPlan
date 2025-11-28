@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload, Plus } from 'lucide-react';
 
 interface ItineraryListProps {
   itinerary: Itinerary | null;
@@ -86,6 +86,53 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
       setIsEditing(false);
       setEditedItinerary(null);
     }
+  };
+
+  const addDay = () => {
+    if (!editedItinerary) return;
+    const nextDay = (editedItinerary.days?.length || 0) + 1;
+    const newDays = [...editedItinerary.days, { day: nextDay, theme: '', activities: [] }];
+    setEditedItinerary({ ...editedItinerary, days: newDays });
+  };
+
+  const removeDay = (dayIdx: number) => {
+    if (!editedItinerary) return;
+    const newDays = editedItinerary.days.filter((_, idx) => idx !== dayIdx).map((d, i) => ({ ...d, day: i + 1 }));
+    setEditedItinerary({ ...editedItinerary, days: newDays });
+  };
+
+  const addActivity = (dayIdx: number) => {
+    if (!editedItinerary) return;
+    const newItinerary = { ...editedItinerary };
+    const acts = newItinerary.days[dayIdx].activities || [];
+    acts.push({
+      time: '09:00',
+      activityName: '新活动',
+      description: '',
+      locationName: '',
+      coordinates: { latitude: 0, longitude: 0 }
+    });
+    newItinerary.days[dayIdx].activities = acts;
+    setEditedItinerary(newItinerary);
+  };
+
+  const removeActivity = (dayIdx: number, actIdx: number) => {
+    if (!editedItinerary) return;
+    const newItinerary = { ...editedItinerary };
+    newItinerary.days[dayIdx].activities = newItinerary.days[dayIdx].activities.filter((_, i) => i !== actIdx);
+    setEditedItinerary(newItinerary);
+  };
+
+  const handleCoordChange = (dayIdx: number, actIdx: number, field: 'latitude' | 'longitude', value: string) => {
+    if (!editedItinerary) return;
+    const num = parseFloat(value);
+    const newItinerary = { ...editedItinerary };
+    const current = newItinerary.days[dayIdx].activities[actIdx].coordinates || { latitude: 0, longitude: 0 };
+    newItinerary.days[dayIdx].activities[actIdx].coordinates = {
+      ...current,
+      [field]: isNaN(num) ? 0 : num
+    };
+    setEditedItinerary(newItinerary);
   };
 
   const handleActivityChange = (dayIndex: number, actIndex: number, field: keyof Activity, value: string) => {
@@ -208,6 +255,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                     }}
                     className="text-right font-serif text-emerald-800 dark:text-emerald-500 font-medium bg-transparent border-b border-dashed border-stone-300 focus:border-solid focus:border-emerald-500 outline-none w-48"
                  />
+                 <button
+                   onClick={() => removeDay(dayIdx)}
+                   className="ml-4 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700/50 border border-stone-200 dark:border-stone-700/50"
+                 >
+                   删除当日
+                 </button>
               </div>
 
               <div className="space-y-8">
@@ -240,6 +293,27 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                                 />
                               </div>
                            </div>
+                           <div>
+                              <label className={editLabel}>坐标</label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  step="0.000001"
+                                  value={activity.coordinates?.latitude ?? 0}
+                                  onChange={(e) => handleCoordChange(dayIdx, actIdx, 'latitude', e.target.value)}
+                                  placeholder="纬度"
+                                  className="w-full bg-transparent border-b border-stone-200 dark:border-stone-700/60 focus:border-emerald-500 text-stone-700 dark:text-stone-200 px-0 py-1 outline-none text-xs"
+                                />
+                                <input
+                                  type="number"
+                                  step="0.000001"
+                                  value={activity.coordinates?.longitude ?? 0}
+                                  onChange={(e) => handleCoordChange(dayIdx, actIdx, 'longitude', e.target.value)}
+                                  placeholder="经度"
+                                  className="w-full bg-transparent border-b border-stone-200 dark:border-stone-700/60 focus:border-emerald-500 text-stone-700 dark:text-stone-200 px-0 py-1 outline-none text-xs"
+                                />
+                              </div>
+                           </div>
                         </div>
 
                         {/* Content Column */}
@@ -261,13 +335,37 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                                 rows={3}
                              />
                            </div>
+                           <div className="flex justify-end">
+                             <button
+                               onClick={() => removeActivity(dayIdx, actIdx)}
+                               className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 border border-red-200/60"
+                             >
+                               删除活动
+                             </button>
+                           </div>
                         </div>
                      </div>
                   </div>
                 ))}
+                 <div className="flex justify-center">
+                   <button
+                     onClick={() => addActivity(dayIdx)}
+                     className="mt-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-800 text-white hover:bg-emerald-900 shadow"
+                   >
+                     <Plus size={14} className="inline mr-1" /> 新增活动
+                   </button>
+                 </div>
               </div>
            </div>
         ))}
+        <div className="flex justify-center gap-3">
+          <button 
+            onClick={addDay}
+            className="px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-800 text-white hover:bg-emerald-900 shadow"
+          >
+            新增天数
+          </button>
+        </div>
         
         <div className="flex justify-center pt-8 pb-12">
            <button 
