@@ -25,6 +25,8 @@ export interface Itinerary {
   summary: string;
   days: DayPlan[];
   visualTheme: string; // New field for background theme
+  shareId?: string;
+  inCommunity?: boolean;
 }
 
 export interface TripFormData {

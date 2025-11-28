@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TripFormData, Itinerary } from '../types';
 import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock } from 'lucide-react';
+import { listCommunityItems, CommunityItem, fetchSharedItinerary } from '../services/community'
 
 interface TravelFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -34,8 +35,11 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
 
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
-  const [view, setView] = useState<'plan' | 'history' | 'custom'>('plan');
+  const [view, setView] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [community, setCommunity] = useState<CommunityItem[]>([])
+  const [communityLoading, setCommunityLoading] = useState(false)
+  const [communityQuery, setCommunityQuery] = useState('')
   const budgetPlaceholders: Record<string, string> = {
     '经济型': '例如：偏向公交与步行，小吃街与公园，免费或低价景点',
     '中等': '例如：经典必去景点+本地特色餐厅，适度购物与文化体验',
@@ -94,13 +98,31 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
     }
   };
 
+  useEffect(() => {
+    let active = true
+    const run = async () => {
+      if (view !== 'community') return
+      try {
+        setCommunityLoading(true)
+        const items = await listCommunityItems(50)
+        if (active) setCommunity(items)
+      } catch {
+        if (active) setCommunity([])
+      } finally {
+        if (active) setCommunityLoading(false)
+      }
+    }
+    run()
+    return () => { active = false }
+  }, [view])
+
   return (
     <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-3xl font-serif font-bold text-stone-800 dark:text-stone-100 flex items-center gap-3">
           <Sparkles className="text-amber-500" size={24} />
           <span className="bg-gradient-to-r from-emerald-800 to-stone-600 dark:from-emerald-400 dark:to-stone-300 bg-clip-text text-transparent">
-            定制您的旅程
+            {view === 'community' ? '社区' : '定制您的旅程'}
           </span>
         </h2>
         <div className="flex items-center gap-3">
@@ -127,6 +149,13 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
               <HistoryIcon size={14} /> 历史记录
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setView('community')}
+            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'community' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50'}`}
+          >
+            社区
+          </button>
           <div className="flex items-center">
             <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
             <button
@@ -385,6 +414,50 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
             </div>
           )}
         </div>
+      ) : view === 'community' ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="搜索社区行程标题"
+              value={communityQuery}
+              onChange={(e) => setCommunityQuery(e.target.value)}
+              className="w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-2 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400"
+            />
+          </div>
+          {communityLoading ? (
+            <div className="text-sm text-stone-400 dark:text-stone-500 italic">加载社区内容中…</div>
+          ) : community.length === 0 ? (
+            <div className="text-sm text-stone-400 dark:text-stone-500 italic">暂无社区分享</div>
+          ) : (
+            <div className="grid gap-4">
+              {(communityQuery ? community.filter(c => c.trip_title.toLowerCase().includes(communityQuery.toLowerCase())) : community).map(item => (
+                <div
+                  key={item.id}
+                  className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  onClick={async () => {
+                    const data = await fetchSharedItinerary(item.id)
+                    if (data) {
+                      onImportItinerary({ ...data, inCommunity: true, shareId: item.id })
+                      setView('plan')
+                    }
+                  }}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
+                        {item.trip_title}
+                      </div>
+                      <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
+                        {new Date(item.created_at).toLocaleDateString()} 创建
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="space-y-6">
           <div>
@@ -445,3 +518,4 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
 };
 
 export default TravelForm;
+  

@@ -80,6 +80,34 @@ WanderPlan 是一个前端应用，支持 AI 自动生成旅程，也支持完�
 - `npm run build` 生成 `dist` 静态文件，可直接部署至任意静态站点服务
 - 需要环境变量时，请在托管平台设置 `VITE_QWEN_API_KEY`
 
+## Supabase 社区功能数据库 SQL
+
+```sql
+create extension if not exists pgcrypto;
+
+create table if not exists public.community_itineraries (
+  id uuid primary key default gen_random_uuid(),
+  trip_title text not null,
+  created_at timestamptz not null default now(),
+  itinerary jsonb not null
+);
+
+create index if not exists community_itineraries_created_at_idx
+  on public.community_itineraries (created_at desc);
+
+alter table public.community_itineraries enable row level security;
+
+create policy "Community read"
+  on public.community_itineraries
+  for select
+  using (true);
+
+create policy "Community insert"
+  on public.community_itineraries
+  for insert
+  with check (true);
+```
+
 ## 相关链接
 
 - Vite 文档：https://vitejs.dev/

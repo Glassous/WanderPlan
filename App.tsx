@@ -5,6 +5,7 @@ import ItineraryList from './components/ItineraryList';
 import MapDisplay from './components/MapDisplay';
 import ThemeBackground from './components/ThemeBackground';
 import { generateItinerary } from './services/qwenservice';
+import { fetchSharedItinerary } from './services/community'
 import { TripFormData, Itinerary } from './types';
 import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather, Github } from 'lucide-react';
 
@@ -27,6 +28,8 @@ const App: React.FC = () => {
   // Edit State
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalLink, setShareModalLink] = useState<string>('');
 
   // Load History on Mount
   useEffect(() => {
@@ -44,6 +47,26 @@ const App: React.FC = () => {
       setHistoryInitialized(true);
     }
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const share = params.get('share')
+    if (!share) return
+    ;(async () => {
+      try {
+        const data = await fetchSharedItinerary(share)
+        if (data) {
+          setItinerary({ ...data, shareId: share, inCommunity: true })
+          setIsFormVisible(false)
+          setSelectedDay(null)
+          setIsEditing(false)
+          setActiveTab('plan')
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    })()
+  }, [])
 
   // Save History when it changes
   useEffect(() => {
@@ -122,6 +145,13 @@ const App: React.FC = () => {
   const handleUpdateItinerary = (updatedItinerary: Itinerary) => {
     setItinerary(updatedItinerary);
     setHistory(prev => prev.map(item => item.id === updatedItinerary.id ? updatedItinerary : item));
+  };
+
+  const handleOpenShareModal = () => {
+    if (!itinerary?.shareId) return;
+    const link = `${window.location.origin}${window.location.pathname}?share=${itinerary.shareId}`;
+    setShareModalLink(link);
+    setShareModalOpen(true);
   };
 
   const handleImportItinerary = (imported: Itinerary) => {
@@ -262,6 +292,7 @@ const App: React.FC = () => {
                       onSelectHistory={handleSelectHistory}
                       onDeleteHistory={handleDeleteHistory}
                       onImportItinerary={handleImportItinerary}
+                      onOpenShareModal={handleOpenShareModal}
                   />
                 </div>
               )}
@@ -322,6 +353,30 @@ const App: React.FC = () => {
             <div className="flex justify-end gap-3">
               <button onClick={cancelDelete} className="px-4 py-2 rounded-full text-sm font-medium bg-stone-100 dark:bg-stone-800/50 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700/50 border border-stone-200 dark:border-stone-700/50">取消</button>
               <button onClick={confirmDelete} className="px-5 py-2 rounded-full text-sm font-medium bg-red-600 hover:bg-red-700 text-white shadow">删除</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 backdrop-blur-sm bg-stone-950/30" onClick={() => setShareModalOpen(false)}></div>
+          <div className="relative bg-white dark:bg-stone-900/80 backdrop-blur-md rounded-3xl border border-stone-100 dark:border-stone-800/50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] p-8 w-[90%] max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
+                <span className="font-serif font-bold">🔗</span>
+              </div>
+              <h3 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">分享链接</h3>
+            </div>
+            <div className="space-y-3">
+              <input
+                readOnly
+                value={shareModalLink}
+                className="w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 px-3 py-2 rounded-xl text-stone-800 dark:text-stone-100"
+              />
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setShareModalOpen(false)} className="px-4 py-2 rounded-full text-sm font-medium bg-stone-100 dark:bg-stone-800/50 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700/50 border border-stone-200 dark:border-stone-700/50">关闭</button>
+                <button onClick={async () => { await navigator.clipboard.writeText(shareModalLink) }} className="px-5 py-2 rounded-full text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white shadow">复制</button>
+              </div>
             </div>
           </div>
         </div>

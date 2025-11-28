@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload, Plus } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload, Plus, Share2 } from 'lucide-react';
+import { shareItinerary } from '../services/community'
 
 interface ItineraryListProps {
   itinerary: Itinerary | null;
@@ -14,6 +15,7 @@ interface ItineraryListProps {
   onSelectHistory: (itinerary: Itinerary) => void;
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
   onImportItinerary: (itinerary: Itinerary) => void;
+  onOpenShareModal: () => void;
 }
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
@@ -27,10 +29,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   onUpdateItinerary,
   onSelectHistory,
   onDeleteHistory,
-  onImportItinerary
+  onImportItinerary,
+  onOpenShareModal
 }) => {
   const [editedItinerary, setEditedItinerary] = useState<Itinerary | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const [sharing, setSharing] = useState(false)
 
   const handleExport = () => {
     if (!itinerary) return;
@@ -82,7 +86,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
 
   const saveEditing = () => {
     if (editedItinerary) {
-      onUpdateItinerary(editedItinerary);
+      const next = editedItinerary.inCommunity ? { ...editedItinerary, inCommunity: false } : editedItinerary
+      onUpdateItinerary(next);
       setIsEditing(false);
       setEditedItinerary(null);
     }
@@ -382,31 +387,65 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   // --- Render Standard List View (Light Luxury Style) ---
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      {/* Action Bar */}
-      <div className="flex items-center justify-between mb-4">
-         <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">行程概览</h2>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={startEditing}
-            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
-          >
-            <Edit3 size={14} />
-            编辑
-          </button>
-          <button
-            onClick={handleExport}
-            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-          >
-            <Save size={14} />
-            导出
-          </button>
-          <button 
-            onClick={onReplan}
-            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-          >
-            <RotateCcw size={14} />
-            返回
-          </button>
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">行程概览</h2>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={startEditing}
+              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
+            >
+              <Edit3 size={14} />
+              编辑
+            </button>
+            <button
+              onClick={handleExport}
+              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
+            >
+              <Save size={14} />
+              导出
+            </button>
+            <button 
+              onClick={onReplan}
+              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
+            >
+              <RotateCcw size={14} />
+              返回
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          {!(displayItinerary.inCommunity) && (
+            <button
+              onClick={async () => {
+                if (!itinerary || sharing) return
+                try {
+                  setSharing(true)
+                  const id = await shareItinerary(itinerary)
+                  const params = new URLSearchParams(window.location.search)
+                  params.set('share', id)
+                  window.history.replaceState(null, '', `?${params.toString()}`)
+                  onUpdateItinerary({ ...(isEditing && editedItinerary ? editedItinerary : itinerary), shareId: id, inCommunity: true })
+                } catch (e) {
+                  alert('分享失败，请稍后重试')
+                } finally {
+                  setSharing(false)
+                }
+              }}
+              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-4 py-2 rounded-full transition-colors border border-amber-100 dark:border-amber-900/30"
+            >
+              <Share2 size={14} />
+              {sharing ? '分享中…' : '分享到社区'}
+            </button>
+          )}
+          {displayItinerary.inCommunity && displayItinerary.shareId && (
+            <button
+              onClick={onOpenShareModal}
+              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
+            >
+              分享链接
+            </button>
+          )}
         </div>
       </div>
 
@@ -504,6 +543,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         })}
       </div>
 
+      
       
     </div>
   );
