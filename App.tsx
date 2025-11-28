@@ -6,7 +6,7 @@ import MapDisplay from './components/MapDisplay';
 import ThemeBackground from './components/ThemeBackground';
 import { generateItinerary } from './services/qwenservice';
 import { TripFormData, Itinerary } from './types';
-import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather } from 'lucide-react';
+import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather, Github } from 'lucide-react';
 
 type Theme = 'system' | 'light' | 'dark';
 
@@ -193,15 +193,22 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              <div className="text-xs font-serif italic text-stone-500 dark:text-stone-400 hidden sm:block">
-                Curated by Qwen AI
+              <div className="text-xs font-serif italic text-stone-500 dark:text-stone-400 hidden sm:block">Curated by Qwen AI</div>
+              <div className="flex items-center gap-1.5">
+                <button 
+                  onClick={() => window.open('https://github.com/Glassous/WanderPlan', '_blank', 'noopener')}
+                  className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800/50 text-stone-600 dark:text-stone-400 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+                  aria-label="Open GitHub"
+                >
+                  <Github size={18} />
+                </button>
+                <button 
+                  onClick={toggleTheme}
+                  className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800/50 text-stone-600 dark:text-stone-400 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+                >
+                  {getThemeIcon()}
+                </button>
               </div>
-              <button 
-                onClick={toggleTheme}
-                className="p-2.5 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800/50 text-stone-600 dark:text-stone-400 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
-              >
-                {getThemeIcon()}
-              </button>
             </div>
           </div>
         </header>
