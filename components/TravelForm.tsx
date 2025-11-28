@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TripFormData, Itinerary } from '../types';
-import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock } from 'lucide-react';
+import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2 } from 'lucide-react';
 import { listCommunityItems, CommunityItem, fetchSharedItinerary } from '../services/community'
 
 interface TravelFormProps {
@@ -61,7 +61,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
   const [community, setCommunity] = useState<CommunityItem[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityQuery, setCommunityQuery] = useState('')
-  const [openingCommunityItem, setOpeningCommunityItem] = useState<string | null>(null) // 跟踪正在打开的社区行程ID
+  const [loadingCommunityId, setLoadingCommunityId] = useState<string | null>(null)
   const CACHE_KEY = 'wanderplan_community_cache'
   const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存过期时间
   const budgetPlaceholders: Record<string, string> = {
@@ -168,6 +168,19 @@ const TravelForm: React.FC<TravelFormProps> = ({
     run()
     return () => { active = false }
   }, [view])
+
+  const handleCommunityItemClick = async (itemId: string) => {
+    setLoadingCommunityId(itemId);
+    try {
+      const data = await fetchSharedItinerary(itemId);
+      if (data) {
+        onImportItinerary({ ...data, inCommunity: true, shareId: itemId });
+        setView('plan');
+      }
+    } finally {
+      setLoadingCommunityId(null);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
@@ -487,35 +500,22 @@ const TravelForm: React.FC<TravelFormProps> = ({
               {(communityQuery ? community.filter(c => c.trip_title.toLowerCase().includes(communityQuery.toLowerCase())) : community).map(item => (
                 <div
                   key={item.id}
-                  className={`group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ${openingCommunityItem === item.id ? 'opacity-70 cursor-not-allowed' : ''}`}
-                  onClick={async () => {
-                    if (openingCommunityItem) return; // 防止重复点击
-                    
-                    try {
-                      setOpeningCommunityItem(item.id); // 设置加载状态
-                      const data = await fetchSharedItinerary(item.id)
-                      if (data) {
-                        onImportItinerary({ ...data, inCommunity: true, shareId: item.id })
-                        setView('plan')
-                      }
-                    } finally {
-                      setOpeningCommunityItem(null); // 清除加载状态
-                    }
-                  }}
+                  className={`group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ${loadingCommunityId === item.id ? 'opacity-80' : ''}`}
+                  onClick={() => handleCommunityItemClick(item.id)}
                 >
                   <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
+                    <div className="flex-1">
+                      <div className={`font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors ${loadingCommunityId === item.id ? 'opacity-60' : ''}`}>
                         {item.trip_title}
                       </div>
                       <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
                         {new Date(item.created_at).toLocaleDateString()} 创建
                       </div>
                     </div>
-                    {openingCommunityItem === item.id ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-emerald-600 dark:border-emerald-400"></div>
-                    ) : (
-                      <Users className="text-stone-400 dark:text-stone-500" size={16} />
+                    {loadingCommunityId === item.id && (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="animate-spin text-emerald-600 dark:text-emerald-400" size={20} />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -584,3 +584,5 @@ const TravelForm: React.FC<TravelFormProps> = ({
 
 export default TravelForm;
   
+
+

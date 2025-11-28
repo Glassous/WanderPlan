@@ -36,16 +36,9 @@ interface MapDisplayProps {
 // Component to handle map view updates
 const MapUpdater: React.FC<{ activities: Activity[] }> = ({ activities }) => {
   const map = useMap();
-  const isMountedRef = React.useRef(true);
 
   useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (activities.length > 0 && isMountedRef.current) {
+    if (activities.length > 0) {
       const bounds = L.latLngBounds(
         activities.map(a => [a.coordinates.latitude, a.coordinates.longitude])
       );
@@ -102,78 +95,78 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
   const defaultCenter: [number, number] = [20, 0]; // World view
   const defaultZoom = 2;
 
-  // Only render map if we have activities to display
-  const hasActivities = allVisibleActivities.length > 0;
+  const mapKey = itinerary ? `map-${itinerary.tripTitle}-${selectedDay}-${itinerary.days.length}` : 'map-empty';
 
   return (
     <div className="h-full w-full relative z-0 bg-stone-100 dark:bg-stone-900">
-      {hasActivities ? (
-        <MapContainer 
-          center={defaultCenter} 
-          zoom={defaultZoom} 
-          scrollWheelZoom={true} 
-          className="h-full w-full outline-none"
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {daysToDisplay.map((day, dayIndex) => {
-             const color = DAY_COLORS[(day.day - 1) % DAY_COLORS.length];
-             const positions = day.activities.map(a => [a.coordinates.latitude, a.coordinates.longitude] as [number, number]);
-             
-             return (
-               <React.Fragment key={`day-group-${day.day}`}>
-                 {/* Markers */}
-                 {day.activities.map((activity, idx) => (
-                    <Marker 
-                      key={`${day.day}-${idx}`}
-                      position={[activity.coordinates.latitude, activity.coordinates.longitude]}
-                      icon={customIcon}
-                    >
-                      <Popup className="font-sans">
-                        <div className="p-1 min-w-[150px]">
-                          <h3 className="font-serif font-bold text-stone-800 text-base mb-1">{activity.activityName}</h3>
-                          <p className="text-xs text-stone-600 mb-2">{activity.locationName}</p>
-                          <div className="flex items-center gap-2">
-                             <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
-                             <p className="text-xs font-mono font-medium text-stone-500">
-                                Day {day.day} • {activity.time}
-                             </p>
-                          </div>
+      <MapContainer 
+        key={mapKey}
+        center={defaultCenter} 
+        zoom={defaultZoom} 
+        scrollWheelZoom={true} 
+        className="h-full w-full outline-none"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {daysToDisplay.map((day, dayIndex) => {
+           const color = DAY_COLORS[(day.day - 1) % DAY_COLORS.length];
+           const positions = day.activities.map(a => [a.coordinates.latitude, a.coordinates.longitude] as [number, number]);
+           
+           return (
+             <React.Fragment key={`day-group-${day.day}`}>
+               {/* Markers */}
+               {day.activities.map((activity, idx) => (
+                  <Marker 
+                    key={`${day.day}-${idx}`}
+                    position={[activity.coordinates.latitude, activity.coordinates.longitude]}
+                    icon={customIcon}
+                  >
+                    <Popup className="font-sans">
+                      <div className="p-1 min-w-[150px]">
+                        <h3 className="font-serif font-bold text-stone-800 text-base mb-1">{activity.activityName}</h3>
+                        <p className="text-xs text-stone-600 mb-2">{activity.locationName}</p>
+                        <div className="flex items-center gap-2">
+                           <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
+                           <p className="text-xs font-mono font-medium text-stone-500">
+                              Day {day.day} • {activity.time}
+                           </p>
                         </div>
-                      </Popup>
-                    </Marker>
-                 ))}
+                      </div>
+                    </Popup>
+                  </Marker>
+               ))}
 
-                 {/* Polylines */}
-                 {positions.length > 1 && (
-                   <>
-                      <Polyline 
-                        positions={positions} 
-                        color={color}
-                        weight={3}
-                        opacity={0.7}
-                        dashArray="5, 10" 
-                      />
-                      <DirectionArrows positions={positions} color={color} />
-                   </>
-                 )}
-               </React.Fragment>
-             );
-          })}
+               {/* Polylines */}
+               {positions.length > 1 && (
+                 <>
+                    <Polyline 
+                      positions={positions} 
+                      color={color}
+                      weight={3}
+                      opacity={0.7}
+                      dashArray="5, 10" 
+                    />
+                    <DirectionArrows positions={positions} color={color} />
+                 </>
+               )}
+             </React.Fragment>
+           );
+        })}
 
-          <MapUpdater activities={allVisibleActivities} />
-        </MapContainer>
-      ) : (
-        <div className="h-full w-full flex items-center justify-center bg-stone-100 dark:bg-stone-900">
+        <MapUpdater activities={allVisibleActivities} />
+      </MapContainer>
+      
+      {!itinerary && (
+        <div className="absolute inset-0 z-[400] bg-stone-50/50 dark:bg-stone-950/50 backdrop-blur-sm flex items-center justify-center pointer-events-none">
           <p className="bg-white/90 dark:bg-stone-800/90 px-6 py-3 rounded-full shadow-lg text-stone-500 dark:text-stone-400 text-sm font-medium border border-stone-200 dark:border-stone-700 tracking-wide font-serif">
-            {itinerary ? '当前无活动可显示' : '等待行程生成...'}
+            等待行程生成...
           </p>
         </div>
       )}
-      
+
       {/* Legend for Day Colors if multiple days are shown */}
       {itinerary && selectedDay === null && itinerary.days.length > 1 && (
          <div className="absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32">
