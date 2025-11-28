@@ -13,6 +13,7 @@ type Theme = 'system' | 'light' | 'dark';
 const App: React.FC = () => {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [history, setHistory] = useState<Itinerary[]>([]);
+  const [historyInitialized, setHistoryInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'plan' | 'map'>('plan'); // For mobile view
@@ -28,20 +29,30 @@ const App: React.FC = () => {
 
   // Load History on Mount
   useEffect(() => {
-    const savedHistory = localStorage.getItem('wanderplan_history');
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (e) {
-        console.error("Failed to load history", e);
+    try {
+      const savedHistory = localStorage.getItem('wanderplan_history');
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          setHistory(parsed);
+        }
       }
+    } catch (e) {
+      console.error('Failed to load history', e);
+    } finally {
+      setHistoryInitialized(true);
     }
   }, []);
 
   // Save History when it changes
   useEffect(() => {
-    localStorage.setItem('wanderplan_history', JSON.stringify(history));
-  }, [history]);
+    if (!historyInitialized) return;
+    try {
+      localStorage.setItem('wanderplan_history', JSON.stringify(history));
+    } catch (e) {
+      console.error('Failed to save history', e);
+    }
+  }, [history, historyInitialized]);
 
   // Theme Logic
   useEffect(() => {
@@ -184,27 +195,18 @@ const App: React.FC = () => {
               {isFormVisible ? (
                 <div className="flex flex-col h-full overflow-hidden">
                   <div className="flex-shrink-0 animate-fade-in mb-8">
-                    <TravelForm onSubmit={handleFormSubmit} isLoading={loading} />
+                    <TravelForm 
+                      onSubmit={handleFormSubmit} 
+                      isLoading={loading} 
+                      history={history}
+                      onSelectHistory={handleSelectHistory}
+                      onDeleteHistory={handleDeleteHistory}
+                    />
                     {error && (
                       <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded-none border-l-4 border-red-500 text-sm">
                         {error}
                       </div>
                     )}
-                  </div>
-                  
-                  <div className="flex-grow overflow-y-auto pr-1">
-                      <ItineraryList 
-                        itinerary={null} 
-                        history={history}
-                        selectedDay={null}
-                        isEditing={false}
-                        setIsEditing={setIsEditing}
-                        onSelectDay={() => {}}
-                        onReplan={() => {}}
-                        onUpdateItinerary={() => {}}
-                        onSelectHistory={handleSelectHistory}
-                        onDeleteHistory={handleDeleteHistory}
-                      />
                   </div>
                 </div>
               ) : (

@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { Itinerary, TripFormData } from "../types";
 
-const apiKey = process.env.API_KEY || "";
+const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
 const itinerarySchema: Schema = {

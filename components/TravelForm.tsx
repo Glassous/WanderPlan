@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { TripFormData } from '../types';
-import { Plane, Calendar, Wallet, Users, Heart, Clock, Sparkles } from 'lucide-react';
+import { TripFormData, Itinerary } from '../types';
+import { Plane, Sparkles, History as HistoryIcon, Trash2 } from 'lucide-react';
 
 interface TravelFormProps {
   onSubmit: (data: TripFormData) => void;
   isLoading: boolean;
+  history: Itinerary[];
+  onSelectHistory: (itinerary: Itinerary) => void;
+  onDeleteHistory: (id: string, e: React.MouseEvent) => void;
 }
 
-const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading }) => {
+const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, onSelectHistory, onDeleteHistory }) => {
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
     duration: 5,
@@ -30,16 +33,36 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading }) => {
 
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border-0 border-b-2 border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-2 py-3 transition-colors rounded-t-sm text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
+  const [view, setView] = useState<'plan' | 'history'>('plan');
 
   return (
     <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
-      <h2 className="text-3xl font-serif font-bold mb-8 text-stone-800 dark:text-stone-100 flex items-center gap-3">
-        <Sparkles className="text-amber-500" size={24} />
-        <span className="bg-gradient-to-r from-emerald-800 to-stone-600 dark:from-emerald-400 dark:to-stone-300 bg-clip-text text-transparent">
-          定制您的旅程
-        </span>
-      </h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-3xl font-serif font-bold text-stone-800 dark:text-stone-100 flex items-center gap-3">
+          <Sparkles className="text-amber-500" size={24} />
+          <span className="bg-gradient-to-r from-emerald-800 to-stone-600 dark:from-emerald-400 dark:to-stone-300 bg-clip-text text-transparent">
+            定制您的旅程
+          </span>
+        </h2>
+        <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50">
+          <button
+            type="button"
+            onClick={() => setView('plan')}
+            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'plan' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
+          >
+            规划
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('history')}
+            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex items-center gap-1 ${view === 'history' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
+          >
+            <HistoryIcon size={14} /> 历史记录
+          </button>
+        </div>
+      </div>
+      {view === 'plan' ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Destination */}
         <div>
@@ -152,24 +175,58 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading }) => {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`w-full py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 mt-4 ${
-            isLoading
-              ? 'bg-stone-400 cursor-not-allowed'
-              : 'bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-2xl hover:-translate-y-1'
-          }`}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center gap-3">
-               <span className="animate-pulse">AI 正在构思...</span>
-            </span>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 mt-4 ${
+              isLoading
+                ? 'bg-stone-400 cursor-not-allowed'
+                : 'bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-2xl hover:-translate-y-1'
+            }`}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-3">
+                 <span className="animate-pulse">AI 正在构思...</span>
+              </span>
+            ) : (
+              '开启规划'
+            )}
+          </button>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          {history.length === 0 ? (
+            <div className="text-sm text-stone-400 dark:text-stone-500 italic">暂无历史记录</div>
           ) : (
-            '开启规划'
+            <div className="grid gap-4">
+              {history.map(item => (
+                <div 
+                  key={item.id} 
+                  onClick={() => onSelectHistory(item)}
+                  className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
+                        {item.tripTitle}
+                      </div>
+                      <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={(e) => onDeleteHistory(item.id, e)}
+                      className="p-2 text-stone-300 hover:text-red-500 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
-        </button>
-      </form>
+        </div>
+      )}
     </div>
   );
 };

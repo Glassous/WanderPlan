@@ -257,13 +257,13 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
              <Edit3 size={14} />
              编辑
            </button>
-           <button 
-             onClick={onReplan}
-             className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-           >
-             <RotateCcw size={14} />
-             重置
-           </button>
+          <button 
+            onClick={onReplan}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
+          >
+            <RotateCcw size={14} />
+            返回
+          </button>
          </div>
       </div>
 
@@ -361,30 +361,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         })}
       </div>
 
-      {/* History Section Footer */}
-      {history.length > 0 && (
-         <div className="pt-10 mt-10 border-t border-dashed border-stone-200 dark:border-stone-700/50">
-             <h3 className="text-sm font-bold uppercase tracking-widest text-stone-400 mb-6 flex items-center gap-2">
-                 <History size={16} />
-                 History
-             </h3>
-             <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
-                 {history.map(item => {
-                    if (item.id === itinerary.id) return null;
-                    return (
-                       <div 
-                         key={item.id} 
-                         onClick={() => onSelectHistory(item)}
-                         className="flex items-center justify-between p-4 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-xl border border-stone-200 dark:border-stone-800/50 hover:border-amber-400 cursor-pointer transition-all"
-                       >
-                         <span className="font-serif font-medium text-stone-700 dark:text-stone-300">{item.tripTitle}</span>
-                         <span className="text-xs text-stone-400">{new Date(item.createdAt).toLocaleDateString()}</span>
-                       </div>
-                    );
-                 })}
-             </div>
-         </div>
-      )}
+      
     </div>
   );
 };
