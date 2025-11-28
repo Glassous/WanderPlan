@@ -10,9 +10,20 @@ interface TravelFormProps {
   onSelectHistory: (itinerary: Itinerary) => void;
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
   onImportItinerary: (itinerary: Itinerary) => void;
+  onTabChange?: (tab: 'plan' | 'history' | 'custom' | 'community') => void;
+  initialTab?: 'plan' | 'history' | 'custom' | 'community';
 }
 
-const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, onSelectHistory, onDeleteHistory, onImportItinerary }) => {
+const TravelForm: React.FC<TravelFormProps> = ({ 
+  onSubmit, 
+  isLoading, 
+  history, 
+  onSelectHistory, 
+  onDeleteHistory, 
+  onImportItinerary,
+  onTabChange,
+  initialTab = 'plan'
+}) => {
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
     duration: 5,
@@ -35,11 +46,24 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
 
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
-  const [view, setView] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
+  const [view, setView] = useState<'plan' | 'history' | 'custom' | 'community'>(initialTab);
+  
+  // Update view when initialTab changes (from parent)
+  useEffect(() => {
+    setView(initialTab);
+  }, [initialTab]);
+  
+  // Call onTabChange when view changes
+  useEffect(() => {
+    onTabChange?.(view);
+  }, [view, onTabChange]);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [community, setCommunity] = useState<CommunityItem[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityQuery, setCommunityQuery] = useState('')
+  const [openingCommunityItem, setOpeningCommunityItem] = useState<string | null>(null) // 跟踪正在打开的社区行程ID
+  const CACHE_KEY = 'wanderplan_community_cache'
+  const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存过期时间
   const budgetPlaceholders: Record<string, string> = {
     '经济型': '例如：偏向公交与步行，小吃街与公园，免费或低价景点',
     '中等': '例如：经典必去景点+本地特色餐厅，适度购物与文化体验',
@@ -102,10 +126,39 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
     let active = true
     const run = async () => {
       if (view !== 'community') return
+      
+      // 从localStorage读取缓存
+      const now = Date.now()
+      let cachedData = null
+      try {
+        const stored = localStorage.getItem(CACHE_KEY)
+        if (stored) {
+          cachedData = JSON.parse(stored)
+        }
+      } catch (e) {
+        console.error('Failed to read community cache:', e)
+      }
+      
+      // 检查缓存是否有效
+      if (cachedData && (now - cachedData.timestamp < CACHE_EXPIRY_TIME)) {
+        // 使用缓存数据
+        if (active) {
+          setCommunity(cachedData.items)
+          setCommunityLoading(false)
+        }
+        return
+      }
+      
+      // 缓存无效或不存在，从服务器获取数据
       try {
         setCommunityLoading(true)
         const items = await listCommunityItems(50)
-        if (active) setCommunity(items)
+        if (active) {
+          setCommunity(items)
+          // 更新localStorage缓存
+          const cacheData = { items, timestamp: now }
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
+        }
       } catch {
         if (active) setCommunity([])
       } finally {
@@ -434,12 +487,19 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
               {(communityQuery ? community.filter(c => c.trip_title.toLowerCase().includes(communityQuery.toLowerCase())) : community).map(item => (
                 <div
                   key={item.id}
-                  className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  className={`group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ${openingCommunityItem === item.id ? 'opacity-70 cursor-not-allowed' : ''}`}
                   onClick={async () => {
-                    const data = await fetchSharedItinerary(item.id)
-                    if (data) {
-                      onImportItinerary({ ...data, inCommunity: true, shareId: item.id })
-                      setView('plan')
+                    if (openingCommunityItem) return; // 防止重复点击
+                    
+                    try {
+                      setOpeningCommunityItem(item.id); // 设置加载状态
+                      const data = await fetchSharedItinerary(item.id)
+                      if (data) {
+                        onImportItinerary({ ...data, inCommunity: true, shareId: item.id })
+                        setView('plan')
+                      }
+                    } finally {
+                      setOpeningCommunityItem(null); // 清除加载状态
                     }
                   }}
                 >
@@ -452,6 +512,11 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
                         {new Date(item.created_at).toLocaleDateString()} 创建
                       </div>
                     </div>
+                    {openingCommunityItem === item.id ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-emerald-600 dark:border-emerald-400"></div>
+                    ) : (
+                      <Users className="text-stone-400 dark:text-stone-500" size={16} />
+                    )}
                   </div>
                 </div>
               ))}

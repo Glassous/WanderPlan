@@ -30,6 +30,8 @@ const App: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalLink, setShareModalLink] = useState<string>('');
+  const [navigationSource, setNavigationSource] = useState<'form' | 'history' | 'community' | 'import'>('form');
+  const [activeFormTab, setActiveFormTab] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
 
   // Load History on Mount
   useEffect(() => {
@@ -61,6 +63,7 @@ const App: React.FC = () => {
           setSelectedDay(null)
           setIsEditing(false)
           setActiveTab('plan')
+          setNavigationSource('community')
         }
       } catch (e) {
         console.error(e)
@@ -128,6 +131,7 @@ const App: React.FC = () => {
       setSelectedDay(null);
       setIsEditing(false); // Ensure not editing when new one generates
       setActiveTab('plan');
+      setNavigationSource('form');
     } catch (err) {
       setError("生成行程失败，请重试。");
     } finally {
@@ -140,6 +144,23 @@ const App: React.FC = () => {
     setIsEditing(false);
     setItinerary(null);
     setActiveTab('plan');
+    
+    // 根据导航来源决定返回时显示的标签页
+    let targetTab: 'plan' | 'history' | 'custom' | 'community' = 'plan';
+    switch (navigationSource) {
+      case 'history':
+        targetTab = 'history';
+        break;
+      case 'community':
+        targetTab = 'community';
+        break;
+      case 'form':
+      case 'import':
+      default:
+        targetTab = 'plan';
+        break;
+    }
+    setActiveFormTab(targetTab);
   };
 
   const handleUpdateItinerary = (updatedItinerary: Itinerary) => {
@@ -175,6 +196,8 @@ const App: React.FC = () => {
     setSelectedDay(null);
     setIsEditing(false);
     setActiveTab('plan');
+    // 如果是从社区导入的行程，设置导航来源为community
+    setNavigationSource(imported.inCommunity ? 'community' : 'import');
   };
 
   const handleSelectHistory = (historyItem: Itinerary) => {
@@ -183,6 +206,7 @@ const App: React.FC = () => {
     setSelectedDay(null);
     setIsEditing(false);
     setActiveTab('plan');
+    setNavigationSource('history');
   };
 
   const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
@@ -270,6 +294,8 @@ const App: React.FC = () => {
                       onSelectHistory={handleSelectHistory}
                       onDeleteHistory={handleDeleteHistory}
                       onImportItinerary={handleImportItinerary}
+                      onTabChange={setActiveFormTab}
+                      initialTab={activeFormTab}
                     />
                     {error && (
                       <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded-none border-l-4 border-red-500 text-sm">
