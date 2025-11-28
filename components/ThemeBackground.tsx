@@ -35,10 +35,21 @@ const ThemeBackground: React.FC<ThemeBackgroundProps> = ({ theme, mode, children
         
         {/* Special 'Stars' overlay for Night modes globally if not explicit */}
         {mode === 'dark' && (
-           <div className="absolute inset-0 opacity-40 mix-blend-screen"
+           <div className="absolute inset-0 opacity-70 mix-blend-screen"
              style={{
-               backgroundImage: 'radial-gradient(1px 1px at 10% 10%, white, transparent), radial-gradient(2px 2px at 20% 40%, white, transparent), radial-gradient(1px 1px at 50% 80%, white, transparent), radial-gradient(2px 2px at 80% 20%, white, transparent)',
-               backgroundSize: '400px 400px'
+               backgroundImage: `
+                 radial-gradient(1.5px 1.5px at 10% 10%, white, transparent), 
+                 radial-gradient(1px 1px at 20% 40%, white, transparent), 
+                 radial-gradient(1.5px 1.5px at 50% 80%, white, transparent), 
+                 radial-gradient(1px 1px at 80% 20%, white, transparent),
+                 radial-gradient(1.5px 1.5px at 15% 65%, white, transparent),
+                 radial-gradient(1px 1px at 35% 15%, white, transparent),
+                 radial-gradient(1.5px 1.5px at 60% 30%, white, transparent),
+                 radial-gradient(1px 1px at 85% 75%, white, transparent),
+                 radial-gradient(1.5px 1.5px at 90% 10%, white, transparent),
+                 radial-gradient(1px 1px at 45% 55%, white, transparent)
+               `,
+               backgroundSize: '500px 500px'
              }}
            />
         )}

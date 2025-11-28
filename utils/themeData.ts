@@ -38,10 +38,7 @@ export const THEMES: Record<string, ThemeDefinition> = {
     night: {
       bg: 'linear-gradient(to bottom, #0c0a09, #1c1917)',
       shapes: [
-        COMMON_SHAPES.moon,
         { type: 'circle', style: { bottom: '-20%', left: '10%', width: '60vw', height: '40vh', background: '#064e3b', filter: 'blur(100px)', opacity: 0.2 } },
-        // Stars are handled by a separate overlay if needed, or we add small dots here. 
-        // For simplicity, we rely on the gradient and large ambient shapes.
         { type: 'circle', style: { top: '40%', right: '20%', width: '300px', height: '300px', background: '#312e81', filter: 'blur(90px)', opacity: 0.2 } }
       ]
     }

@@ -141,8 +141,8 @@ const App: React.FC = () => {
     <ThemeBackground theme={currentVisualTheme} mode={activeMode}>
       <div className="flex flex-col font-sans min-h-screen">
         {/* Header */}
-        <header className="bg-white/80 dark:bg-stone-900/60 backdrop-blur-md border-b border-stone-200 dark:border-stone-800/50 sticky top-0 z-30 transition-colors">
-          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <header className={`bg-white/80 dark:bg-stone-900/60 backdrop-blur-md border border-stone-200 dark:border-stone-800/50 fixed top-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ease-in-out rounded-2xl shadow-xl ${showMap ? 'w-[calc(100%-2rem)] max-w-[1800px]' : 'w-[calc(100%-2rem)] max-w-4xl'}`}>
+          <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setIsFormVisible(true); setItinerary(null); setIsEditing(false); }}>
               <div className="bg-emerald-800 dark:bg-emerald-700 p-2 rounded-full text-white shadow-lg group-hover:shadow-emerald-900/20 transition-all duration-300">
                 <Feather size={20} />
@@ -165,7 +165,7 @@ const App: React.FC = () => {
         </header>
 
         {/* Main Content */}
-        <main className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1800px] mx-auto w-full">
+        <main className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1800px] mx-auto w-full mt-24">
           {/* 
             Layout Logic:
             - Homepage (Form Visible) OR Editing: Single column, centered content.
