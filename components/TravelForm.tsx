@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TripFormData, Itinerary } from '../types';
-import { Plane, Sparkles, History as HistoryIcon, Trash2 } from 'lucide-react';
+import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload } from 'lucide-react';
 
 interface TravelFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -8,9 +8,10 @@ interface TravelFormProps {
   history: Itinerary[];
   onSelectHistory: (itinerary: Itinerary) => void;
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
+  onImportItinerary: (itinerary: Itinerary) => void;
 }
 
-const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, onSelectHistory, onDeleteHistory }) => {
+const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, onSelectHistory, onDeleteHistory, onImportItinerary }) => {
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
     duration: 5,
@@ -34,6 +35,31 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border-0 border-b-2 border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-2 py-3 transition-colors rounded-t-sm text-stone-800 dark:text-stone-100 placeholder-stone-400";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
   const [view, setView] = useState<'plan' | 'history'>('plan');
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || !Array.isArray(parsed.days)) throw new Error('invalid');
+      const imported: Itinerary = {
+        id: parsed.id || (crypto as any).randomUUID?.() || `${Date.now()}`,
+        createdAt: parsed.createdAt || Date.now(),
+        tripTitle: parsed.tripTitle || '未命名行程',
+        summary: parsed.summary || '',
+        days: parsed.days,
+        visualTheme: parsed.visualTheme || 'default'
+      };
+      onImportItinerary(imported);
+      setView('plan');
+    } catch {
+      alert('导入失败：请提供有效的行程JSON文件');
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
@@ -58,6 +84,16 @@ const TravelForm: React.FC<TravelFormProps> = ({ onSubmit, isLoading, history, o
             className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex items-center gap-1 ${view === 'history' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
           >
             <HistoryIcon size={14} /> 历史记录
+          </button>
+        </div>
+        <div className="flex items-center ml-3">
+          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50 flex items-center gap-1"
+          >
+            <Upload size={14} /> 导入
           </button>
         </div>
       </div>

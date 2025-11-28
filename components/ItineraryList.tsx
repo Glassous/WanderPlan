@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload } from 'lucide-react';
 
 interface ItineraryListProps {
   itinerary: Itinerary | null;
@@ -13,6 +13,7 @@ interface ItineraryListProps {
   onUpdateItinerary: (itinerary: Itinerary) => void;
   onSelectHistory: (itinerary: Itinerary) => void;
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
+  onImportItinerary: (itinerary: Itinerary) => void;
 }
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
@@ -25,9 +26,46 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   onReplan,
   onUpdateItinerary,
   onSelectHistory,
-  onDeleteHistory
+  onDeleteHistory,
+  onImportItinerary
 }) => {
   const [editedItinerary, setEditedItinerary] = useState<Itinerary | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    if (!itinerary) return;
+    const data = JSON.stringify(isEditing && editedItinerary ? editedItinerary : itinerary, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const a = document.createElement('a');
+    const safeTitle = (itinerary.tripTitle || 'itinerary').replace(/[^\w\u4e00-\u9fa5]+/g, '-');
+    a.href = URL.createObjectURL(blob);
+    a.download = `wanderplan-${safeTitle}-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || !Array.isArray(parsed.days)) throw new Error('invalid');
+      const imported: Itinerary = {
+        id: parsed.id || (crypto as any).randomUUID?.() || `${Date.now()}`,
+        createdAt: parsed.createdAt || Date.now(),
+        tripTitle: parsed.tripTitle || '未命名行程',
+        summary: parsed.summary || '',
+        days: parsed.days,
+        visualTheme: parsed.visualTheme || 'default'
+      };
+      onImportItinerary(imported);
+    } catch {
+      alert('导入失败：请提供有效的行程JSON文件');
+    } finally {
+      e.target.value = '';
+    }
+  };
 
   // Initialize edit state when entering edit mode
   const startEditing = () => {
@@ -249,14 +287,29 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
       {/* Action Bar */}
       <div className="flex items-center justify-between mb-4">
          <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">行程概览</h2>
-         <div className="flex items-center gap-2">
-           <button 
-             onClick={startEditing}
-             className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
-           >
-             <Edit3 size={14} />
-             编辑
-           </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={startEditing}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
+          >
+            <Edit3 size={14} />
+            编辑
+          </button>
+          <button
+            onClick={handleExport}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
+          >
+            <Save size={14} />
+            导出
+          </button>
+          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
+          >
+            <Upload size={14} />
+            导入
+          </button>
           <button 
             onClick={onReplan}
             className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
@@ -264,7 +317,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
             <RotateCcw size={14} />
             返回
           </button>
-         </div>
+        </div>
       </div>
 
       {/* Hero Card */}

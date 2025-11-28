@@ -123,6 +123,29 @@ const App: React.FC = () => {
     setHistory(prev => prev.map(item => item.id === updatedItinerary.id ? updatedItinerary : item));
   };
 
+  const handleImportItinerary = (imported: Itinerary) => {
+    const normalized: Itinerary = {
+      ...imported,
+      id: imported.id || (crypto as any).randomUUID?.() || `${Date.now()}`,
+      createdAt: imported.createdAt || Date.now(),
+      visualTheme: imported.visualTheme || 'default'
+    };
+    setItinerary(normalized);
+    setHistory(prev => {
+      const idx = prev.findIndex(i => i.id === normalized.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = normalized;
+        return copy;
+      }
+      return [normalized, ...prev];
+    });
+    setIsFormVisible(false);
+    setSelectedDay(null);
+    setIsEditing(false);
+    setActiveTab('plan');
+  };
+
   const handleSelectHistory = (historyItem: Itinerary) => {
     setItinerary(historyItem);
     setIsFormVisible(false);
@@ -201,6 +224,7 @@ const App: React.FC = () => {
                       history={history}
                       onSelectHistory={handleSelectHistory}
                       onDeleteHistory={handleDeleteHistory}
+                      onImportItinerary={handleImportItinerary}
                     />
                     {error && (
                       <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded-none border-l-4 border-red-500 text-sm">
@@ -222,6 +246,7 @@ const App: React.FC = () => {
                       onUpdateItinerary={handleUpdateItinerary}
                       onSelectHistory={handleSelectHistory}
                       onDeleteHistory={handleDeleteHistory}
+                      onImportItinerary={handleImportItinerary}
                   />
                 </div>
               )}
