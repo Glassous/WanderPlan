@@ -4,7 +4,7 @@ import TravelForm from './components/TravelForm';
 import ItineraryList from './components/ItineraryList';
 import MapDisplay from './components/MapDisplay';
 import ThemeBackground from './components/ThemeBackground';
-import { generateItinerary } from './services/geminiService';
+import { generateItinerary } from './services/qwenservice';
 import { TripFormData, Itinerary } from './types';
 import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather } from 'lucide-react';
 
@@ -186,7 +186,7 @@ const App: React.FC = () => {
             
             <div className="flex items-center gap-4">
               <div className="text-xs font-serif italic text-stone-500 dark:text-stone-400 hidden sm:block">
-                Curated by Gemini AI
+                Curated by Qwen AI
               </div>
               <button 
                 onClick={toggleTheme}

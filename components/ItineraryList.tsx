@@ -211,8 +211,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
               </div>
 
               <div className="space-y-8">
-                {day.activities.map((activity, actIdx) => (
-                  <div key={actIdx} className="relative pl-6 border-l-2 border-stone-100 dark:border-stone-800/50">
+                 {day.activities.map((activity, actIdx) => (
+                  <div key={actIdx} className="relative pl-6 border-l-2 border-stone-100 dark:border-stone-800/50 rounded-2xl bg-stone-50 dark:bg-stone-800/30 p-4">
                      <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-stone-200 dark:bg-stone-700 border-2 border-white dark:border-stone-900"></div>
                      
                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -301,14 +301,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           >
             <Save size={14} />
             导出
-          </button>
-          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
-          <button
-            onClick={() => importInputRef.current?.click()}
-            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-          >
-            <Upload size={14} />
-            导入
           </button>
           <button 
             onClick={onReplan}
