@@ -4,7 +4,10 @@ const apiKey = (import.meta as any).env?.VITE_QWEN_API_KEY || "";
 const baseUrl = "https://dashscope.aliyuncs.com/compatible-mode/v1";
 const endpoint = `${baseUrl}/chat/completions`;
 
-export const generateItinerary = async (data: TripFormData): Promise<Itinerary> => {
+// 流式生成行程的回调类型
+export type StreamCallback = (partialItinerary: Partial<Itinerary> | null, isDone: boolean) => void;
+
+export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback): Promise<Itinerary> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
   }
@@ -43,6 +46,7 @@ export const generateItinerary = async (data: TripFormData): Promise<Itinerary> 
         ],
         temperature: 0.4,
         response_format: { type: "json_object" },
+        stream: !!streamCallback, // 只有提供了回调才启用流式
       }),
     });
 
@@ -51,18 +55,133 @@ export const generateItinerary = async (data: TripFormData): Promise<Itinerary> 
       throw new Error(text || "Request failed");
     }
 
-    const dataJson = await res.json();
-    const content = dataJson?.choices?.[0]?.message?.content;
-    if (!content) {
-      throw new Error("No response from AI");
+    // 非流式响应处理
+    if (!streamCallback || !res.body) {
+      const dataJson = await res.json();
+      const content = dataJson?.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("No response from AI");
+      }
+
+      const result = JSON.parse(content);
+      return {
+        ...result,
+        id: crypto.randomUUID(),
+        createdAt: Date.now(),
+      } as Itinerary;
     }
 
-    const result = JSON.parse(content);
-    return {
+    // 流式响应处理
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullContent = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+
+        // 处理SSE格式的流数据
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6);
+            if (dataStr === "[DONE]") {
+              break;
+            }
+
+            try {
+              const dataJson = JSON.parse(dataStr);
+              const delta = dataJson?.choices?.[0]?.delta?.content || "";
+              fullContent += delta;
+
+              // 尝试解析部分JSON并调用回调
+              try {
+                const partialResult = JSON.parse(fullContent);
+                streamCallback({
+                  ...partialResult,
+                  id: crypto.randomUUID(),
+                  createdAt: Date.now(),
+                } as Partial<Itinerary>, false);
+              } catch (parseError) {
+                // JSON不完整，尝试提取已有的字段
+                const partialItinerary: Partial<Itinerary> = {};
+                
+                // 提取tripTitle
+                const tripTitleMatch = fullContent.match(/"tripTitle"\s*:\s*"([^"]*)"/);
+                if (tripTitleMatch) {
+                  partialItinerary.tripTitle = tripTitleMatch[1];
+                }
+                
+                // 提取summary
+                const summaryMatch = fullContent.match(/"summary"\s*:\s*"([^"]*)"/);
+                if (summaryMatch) {
+                  partialItinerary.summary = summaryMatch[1];
+                }
+                
+                // 提取visualTheme
+                const visualThemeMatch = fullContent.match(/"visualTheme"\s*:\s*"([^"]*)"/);
+                if (visualThemeMatch) {
+                  partialItinerary.visualTheme = visualThemeMatch[1] as any;
+                }
+                
+                // 提取days数组的开始部分
+                const daysMatch = fullContent.match(/"days"\s*:\s*\[(.*)/s);
+                if (daysMatch) {
+                  try {
+                    // 尝试解析days数组的部分内容
+                    const daysContent = daysMatch[1];
+                    let daysArray = [];
+                    
+                    // 简单的数组解析，只处理到第一个完整的day对象
+                    const dayMatch = daysContent.match(/\{[^}]*\}/);
+                    if (dayMatch) {
+                      const dayObj = JSON.parse(dayMatch[0]);
+                      daysArray = [dayObj];
+                    }
+                    
+                    partialItinerary.days = daysArray;
+                  } catch (e) {
+                    // 忽略days解析错误
+                  }
+                }
+                
+                if (Object.keys(partialItinerary).length > 0) {
+                  streamCallback({
+                    ...partialItinerary,
+                    id: crypto.randomUUID(),
+                    createdAt: Date.now(),
+                  }, false);
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing stream chunk:", e);
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    // 解析完整的JSON
+    const result = JSON.parse(fullContent);
+    const finalItinerary = {
       ...result,
       id: crypto.randomUUID(),
       createdAt: Date.now(),
     } as Itinerary;
+
+    // 最后一次回调，标记完成
+    streamCallback(finalItinerary, true);
+    return finalItinerary;
   } catch (error) {
     console.error("Error generating itinerary:", error);
     throw error;

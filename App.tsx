@@ -13,9 +13,11 @@ type Theme = 'system' | 'light' | 'dark';
 
 const App: React.FC = () => {
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
+  const [partialItinerary, setPartialItinerary] = useState<Partial<Itinerary> | null>(null);
   const [history, setHistory] = useState<Itinerary[]>([]);
   const [historyInitialized, setHistoryInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'plan' | 'map'>('plan'); // For mobile view
   
@@ -121,19 +123,35 @@ const App: React.FC = () => {
 
   const handleFormSubmit = async (data: TripFormData) => {
     setLoading(true);
+    setStreaming(true);
     setError(null);
+    setPartialItinerary(null);
+    setItinerary(null);
+    
+    // 立即隐藏表单，显示行程卡片
+    setIsFormVisible(false);
+    setSelectedDay(null);
+    setIsEditing(false); // Ensure not editing when new one generates
+    setActiveTab('plan');
+    setNavigationSource('form');
+    
     try {
-      const result = await generateItinerary(data);
-      setItinerary(result);
-      setHistory(prev => [result, ...prev]);
-      
-      setIsFormVisible(false);
-      setSelectedDay(null);
-      setIsEditing(false); // Ensure not editing when new one generates
-      setActiveTab('plan');
-      setNavigationSource('form');
+      const result = await generateItinerary(data, (partialResult, isDone) => {
+        // 更新部分行程数据
+        setPartialItinerary(partialResult);
+        
+        // 如果生成完成，更新最终行程
+        if (isDone) {
+          setItinerary(partialResult as Itinerary);
+          setHistory(prev => [partialResult as Itinerary, ...prev]);
+          setStreaming(false);
+        }
+      });
     } catch (err) {
       setError("生成行程失败，请重试。");
+      setStreaming(false);
+      // 错误时显示表单
+      setIsFormVisible(true);
     } finally {
       setLoading(false);
     }
@@ -228,10 +246,11 @@ const App: React.FC = () => {
   const cancelDelete = () => setConfirmDeleteId(null);
 
   // Logic to determine if map should be shown
-  const showMap = !isFormVisible && !isEditing;
+  const showMap = !isFormVisible && !isEditing && !streaming && itinerary;
 
   // Determine current visual theme
-  const currentVisualTheme = isFormVisible || !itinerary ? 'default' : (itinerary.visualTheme || 'default');
+  const currentVisualTheme = isFormVisible || (!itinerary && !partialItinerary) ? 'default' : 
+    (itinerary?.visualTheme || partialItinerary?.visualTheme || 'default');
 
   return (
     <ThemeBackground theme={currentVisualTheme} mode={activeMode}>
@@ -308,6 +327,8 @@ const App: React.FC = () => {
                 <div className="flex-grow overflow-y-auto pr-1 pb-4 scroll-smooth">
                   <ItineraryList 
                       itinerary={itinerary} 
+                      partialItinerary={partialItinerary}
+                      streaming={streaming}
                       history={history}
                       selectedDay={selectedDay}
                       isEditing={isEditing}

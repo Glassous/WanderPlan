@@ -5,6 +5,8 @@ import { shareItinerary } from '../services/community'
 
 interface ItineraryListProps {
   itinerary: Itinerary | null;
+  partialItinerary: Partial<Itinerary> | null;
+  streaming: boolean;
   history: Itinerary[];
   selectedDay: number | null;
   isEditing: boolean;
@@ -20,6 +22,8 @@ interface ItineraryListProps {
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
   itinerary, 
+  partialItinerary,
+  streaming,
   history,
   selectedDay, 
   isEditing,
@@ -150,7 +154,11 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     setEditedItinerary(newItinerary);
   };
 
-  if (!itinerary) {
+  // Determine which itinerary to display
+  const displayItinerary = isEditing && editedItinerary ? editedItinerary : 
+                          streaming ? partialItinerary : itinerary;
+
+  if (!displayItinerary) {
     // Show history if no active itinerary
     if (history.length > 0) {
        return (
@@ -190,9 +198,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     }
     return null; 
   }
-
-  // Use the edited itinerary if in edit mode, otherwise props.itinerary
-  const displayItinerary = isEditing && editedItinerary ? editedItinerary : itinerary;
 
   // --- Styles for Edit Inputs (Minimalist/Underline) ---
   const editInputTitle = "w-full text-4xl font-serif font-bold text-stone-900 dark:text-white bg-transparent border-0 border-b-2 border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 focus:ring-0 px-0 py-2 placeholder-stone-300 transition-all";
@@ -454,11 +459,21 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
         <div className="relative z-10">
           <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 text-stone-900 dark:text-white leading-tight">
-            {displayItinerary.tripTitle}
+            {displayItinerary.tripTitle || "正在生成行程..."}
           </h1>
           <p className="text-stone-600 dark:text-stone-400 leading-relaxed font-light text-sm md:text-base border-l-2 border-amber-400 pl-4 italic">
-            {displayItinerary.summary}
+            {displayItinerary.summary || "AI正在为您规划完美的旅行体验..."}
           </p>
+          {streaming && (
+            <div className="mt-4 flex items-center text-xs text-emerald-600 dark:text-emerald-400">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              </div>
+              <span className="ml-2 font-medium">AI正在生成行程...</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -474,7 +489,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
          >
            All Days
          </button>
-         {displayItinerary.days.map((day) => (
+         {(displayItinerary.days || []).map((day) => (
            <button
              key={`filter-${day.day}`}
              onClick={() => onSelectDay(day.day)}
@@ -491,56 +506,80 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
 
       {/* Days List */}
       <div className="space-y-8">
-        {displayItinerary.days.map((day) => {
+        {(displayItinerary.days || []).map((day, dayIdx) => {
+          if (!day) return null;
           if (selectedDay !== null && day.day !== selectedDay) return null;
 
           return (
-            <div key={day.day} className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden">
+            <div key={day.day || dayIdx} className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden">
               {/* Day Header */}
               <div 
                 className="bg-stone-50/50 dark:bg-stone-800/30 px-8 py-5 border-b border-stone-100 dark:border-stone-800/50 flex items-center justify-between cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
-                onClick={() => onSelectDay(selectedDay === day.day ? null : day.day)}
+                onClick={() => onSelectDay(selectedDay === (day.day || dayIdx + 1) ? null : (day.day || dayIdx + 1))}
               >
                 <div className="flex items-center gap-4">
                   <span className="font-serif font-bold text-2xl text-stone-300 dark:text-stone-600">
-                    {day.day.toString().padStart(2, '0')}
+                    {(day.day || dayIdx + 1).toString().padStart(2, '0')}
                   </span>
-                  <h3 className="font-serif font-bold text-lg text-stone-800 dark:text-white">Day {day.day}</h3>
+                  <h3 className="font-serif font-bold text-lg text-stone-800 dark:text-white">Day {(day.day || dayIdx + 1)}</h3>
                 </div>
                 <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-full uppercase tracking-wide border border-emerald-100 dark:border-emerald-900/30">
-                  {day.theme}
+                  {day.theme || "规划中"}
                 </span>
               </div>
               
               {/* Activities */}
               <div className="p-2">
-                {day.activities.map((activity, actIdx) => (
-                  <div key={actIdx} className="group flex items-stretch p-4 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-2xl transition-colors">
-                    {/* Time Column */}
-                    <div className="w-20 pt-1 flex flex-col items-center border-r border-stone-100 dark:border-stone-800/50 mr-5 pr-5">
-                       <span className="text-sm font-bold text-stone-800 dark:text-stone-200">{activity.time}</span>
-                       <div className="h-full w-px bg-stone-100 dark:bg-stone-800/50 my-2 group-last:hidden"></div>
-                    </div>
+                {(day.activities || []).map((activity, actIdx) => {
+                  if (!activity) return null;
+                  return (
+                    <div key={actIdx} className="group flex items-stretch p-4 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-2xl transition-colors">
+                      {/* Time Column */}
+                      <div className="w-20 pt-1 flex flex-col items-center border-r border-stone-100 dark:border-stone-800/50 mr-5 pr-5">
+                         <span className="text-sm font-bold text-stone-800 dark:text-stone-200">{activity.time || "--:--"}</span>
+                         <div className="h-full w-px bg-stone-100 dark:bg-stone-800/50 my-2 group-last:hidden"></div>
+                      </div>
 
-                    {/* Content */}
-                    <div className="flex-grow pb-2">
-                      <h4 className="font-bold text-stone-800 dark:text-stone-100 mb-2 text-base group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
-                        {activity.activityName}
-                      </h4>
-                      <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed mb-3 line-clamp-3">
-                        {activity.description}
-                      </p>
-                      <div className="flex items-center text-xs text-stone-400 dark:text-stone-500 font-medium">
-                        <MapPin className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                        {activity.locationName}
+                      {/* Content */}
+                      <div className="flex-grow pb-2">
+                        <h4 className="font-bold text-stone-800 dark:text-stone-100 mb-2 text-base group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
+                          {activity.activityName || "活动规划中"}
+                        </h4>
+                        <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed mb-3 line-clamp-3">
+                          {activity.description || "正在生成活动详情..."}
+                        </p>
+                        <div className="flex items-center text-xs text-stone-400 dark:text-stone-500 font-medium">
+                          <MapPin className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                          {activity.locationName || "位置规划中"}
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+                {streaming && (day.activities || []).length === 0 && (
+                  <div className="p-4 text-center text-stone-500 dark:text-stone-400">
+                    <div className="flex justify-center space-x-1 mb-2">
+                      <div className="w-2 h-2 bg-stone-300 dark:bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                      <div className="w-2 h-2 bg-stone-300 dark:bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                      <div className="w-2 h-2 bg-stone-300 dark:bg-stone-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+                    </div>
+                    <p className="text-sm">正在生成活动...</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           );
         })}
+        {streaming && (displayItinerary.days || []).length === 0 && (
+          <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 p-8 text-center">
+            <div className="flex justify-center space-x-1 mb-4">
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
+            </div>
+            <p className="text-stone-500 dark:text-stone-400">AI正在为您规划行程天数...</p>
+          </div>
+        )}
       </div>
 
       
