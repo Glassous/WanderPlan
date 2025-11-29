@@ -170,7 +170,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
               try {
                 setSharing(true)
                 const id = await shareItinerary(itinerary)
-                // 移除此处修改 URL 的代码
                 onUpdateItinerary({ ...(isEditing && editedItinerary ? editedItinerary : itinerary), shareId: id, inCommunity: true })
               } catch (e) {
                 alert('分享失败，请稍后重试')
@@ -287,7 +286,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   if (isEditing) {
     return (
       <div className="animate-fade-in space-y-8 pb-20 max-w-4xl mx-auto h-full overflow-y-auto custom-scrollbar px-1">
-        {/* 修复：将 px-6 改为 px-8 以与下方卡片的 p-8 对齐，解决文字偏左问题；将 rounded-2xl 改为 rounded-3xl 以保持一致的圆角风格 */}
         <div className="sticky top-0 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-sm py-4 px-8 rounded-3xl border-b border-stone-200 dark:border-stone-800/50 flex justify-between items-center mb-6 shadow-sm">
            <h2 className="text-xl font-serif text-stone-500 dark:text-stone-400 flex items-center gap-2">
              <Edit3 size={18} />
@@ -392,7 +390,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   return (
     <div className="flex flex-col h-full gap-4 relative">
       {/* 1. Fixed Header Section */}
-      <div className="flex-shrink-0 z-30">
+      <div className="flex-shrink-0 z-10">
         <HeaderSection />
       </div>
 
