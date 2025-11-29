@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Itinerary, Activity } from '../types';
+import { RefreshCcw, Layers, Check } from 'lucide-react'; // 引入图标
 
 // Fix for default Leaflet marker icons in React
 const customIcon = new L.Icon({
@@ -28,44 +29,80 @@ const DAY_COLORS = [
   '#0f766e', // Teal
 ];
 
+// 瓦片源定义
+const TILE_SOURCES = {
+  carto: {
+    name: 'CartoDB',
+    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; CARTO'
+  },
+  amap: {
+    name: '高德地图 (仅中国)',
+    url: 'https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+    attribution: '&copy; 高德地图'
+  },
+  osm: {
+    name: 'OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OSM Contributors'
+  },
+  google_road: {
+    name: '谷歌地图 (道路)',
+    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps'
+  },
+  google_sat: {
+    name: '谷歌地图 (卫星)',
+    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps'
+  }
+};
+
+type TileSourceKey = keyof typeof TILE_SOURCES;
+
 interface MapDisplayProps {
   itinerary: Itinerary | null;
   selectedDay: number | null;
 }
 
-// Component to handle map view updates
-const MapUpdater: React.FC<{ activities: Activity[] }> = ({ activities }) => {
+// 核心控制器：处理缩放、重置和初始化
+const MapController: React.FC<{ 
+  targetActivities: Activity[] | null, 
+  resetTrigger: number 
+}> = ({ targetActivities, resetTrigger }) => {
   const map = useMap();
 
-  useEffect(() => {
-    if (activities.length > 0) {
+  const fitMapBounds = (acts: Activity[]) => {
+    if (acts && acts.length > 0) {
       const bounds = L.latLngBounds(
-        activities.map(a => [a.coordinates.latitude, a.coordinates.longitude])
+        acts.map(a => [a.coordinates.latitude, a.coordinates.longitude])
       );
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true });
+      }
     }
-  }, [activities, map]);
-
-  return null;
-};
-
-// 自动刷新组件：解决 display:none 切换或动画导致的地图灰显/瓦片缺失问题
-const MapRevalidator: React.FC = () => {
-  const map = useMap();
+  };
 
   useEffect(() => {
-    // 1. 挂载时立即刷新
-    map.invalidateSize();
+    if (targetActivities) {
+      fitMapBounds(targetActivities);
+    }
+  }, [targetActivities, resetTrigger]); 
 
-    // 2. 监听容器大小变化（处理 tab 切换、窗口缩放、CSS 动画）
+  useEffect(() => {
+    map.invalidateSize();
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+      if (targetActivities) fitMapBounds(targetActivities);
+    }, 600);
+
     const resizeObserver = new ResizeObserver(() => {
       map.invalidateSize();
     });
-
-    const container = map.getContainer();
-    resizeObserver.observe(container);
+    resizeObserver.observe(map.getContainer());
 
     return () => {
+      clearTimeout(timer);
       resizeObserver.disconnect();
     };
   }, [map]);
@@ -76,53 +113,60 @@ const MapRevalidator: React.FC = () => {
 // Component to render arrows along the path
 const DirectionArrows: React.FC<{ positions: [number, number][], color: string }> = ({ positions, color }) => {
   if (positions.length < 2) return null;
-
   const arrows = [];
-  
-  // Create an arrow for each segment
   for (let i = 0; i < positions.length - 1; i++) {
     const start = positions[i];
     const end = positions[i + 1];
-    
-    // Calculate angle
     const dx = end[1] - start[1];
     const dy = end[0] - start[0];
-    const angle = Math.atan2(dx, dy) * (180 / Math.PI); // Convert to degrees
-    
-    // Calculate midpoint
+    const angle = Math.atan2(dx, dy) * (180 / Math.PI) - 90; 
     const midLat = (start[0] + end[0]) / 2;
     const midLng = (start[1] + end[1]) / 2;
-    
-    // Create a rotated arrow icon using DivIcon
     const arrowIcon = L.divIcon({
       className: 'arrow-icon',
       html: `<div style="transform: rotate(${angle}deg); color: ${color}; font-size: 20px; text-shadow: 0 0 2px white; opacity: 0.8;">➤</div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10]
     });
-
-    arrows.push(
-      <Marker key={`arrow-${i}`} position={[midLat, midLng]} icon={arrowIcon} interactive={false} />
-    );
+    arrows.push(<Marker key={`arrow-${i}`} position={[midLat, midLng]} icon={arrowIcon} interactive={false} />);
   }
-
   return <>{arrows}</>;
 };
 
 const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
-  // If we have an itinerary, we need to process days to display
   const daysToDisplay = itinerary?.days?.filter(d => selectedDay === null || d.day === selectedDay) || [];
-  
-  // All visible activities for bounds calculation
   const allVisibleActivities = daysToDisplay.flatMap(d => d.activities);
 
-  const defaultCenter: [number, number] = [20, 0]; // World view
-  const defaultZoom = 2;
+  const [zoomTarget, setZoomTarget] = useState<Activity[] | null>(null);
+  const [resetCount, setResetCount] = useState(0);
+  
+  // 瓦片源状态
+  const [currentSource, setCurrentSource] = useState<TileSourceKey>('carto');
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
 
+  useEffect(() => {
+    setZoomTarget(allVisibleActivities);
+  }, [itinerary, selectedDay]); 
+
+  const handleResetView = () => {
+    setZoomTarget(allVisibleActivities);
+    setResetCount(c => c + 1); 
+  };
+
+  const handleDayClick = (dayNum: number) => {
+    const dayData = itinerary?.days.find(d => d.day === dayNum);
+    if (dayData && dayData.activities.length > 0) {
+      setZoomTarget(dayData.activities);
+      setResetCount(c => c + 1);
+    }
+  };
+
+  const defaultCenter: [number, number] = [20, 0]; 
+  const defaultZoom = 2;
   const mapKey = itinerary ? `map-${itinerary.tripTitle}-${selectedDay}-${itinerary.days.length}` : 'map-empty';
 
   return (
-    <div className="h-full w-full relative z-0 bg-stone-100 dark:bg-stone-900">
+    <div className="h-full w-full relative z-0 bg-stone-100 dark:bg-stone-900 group">
       <MapContainer 
         key={mapKey}
         center={defaultCenter} 
@@ -130,28 +174,14 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         scrollWheelZoom={true} 
         className="h-full w-full outline-none"
       >
-        {/* 自动刷新修复 */}
-        <MapRevalidator />
+        <MapController targetActivities={zoomTarget} resetTrigger={resetCount} />
 
-        {/* === 核心修改：地图瓦片源 ===
-            方案 A (默认): CartoDB Positron
-            特点：全球数据完整、风格极简现代（非常适合旅游App）、国内访问速度快（Fastly CDN）。
-            坐标系：WGS-84（与 AI 生成的坐标完美匹配，无偏移）。
-        */}
+        {/* 动态瓦片层 */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          key={currentSource} 
+          attribution={TILE_SOURCES[currentSource].attribution}
+          url={TILE_SOURCES[currentSource].url}
         />
-
-        {/* 方案 B (备用): Esri World Street Map
-            如果 CartoDB 在您那里也加载失败，请【注释掉上面的】，【解开下面的注释】。
-            特点：企业级稳定性、全球数据详尽、风格偏传统地图。
-            
-        <TileLayer
-          attribution='Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
-        /> 
-        */}
         
         {daysToDisplay.map((day, dayIndex) => {
            const color = DAY_COLORS[(day.day - 1) % DAY_COLORS.length];
@@ -180,26 +210,81 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
                     </Popup>
                   </Marker>
                ))}
-
-               {/* Polylines */}
                {positions.length > 1 && (
                  <>
-                    <Polyline 
-                      positions={positions} 
-                      color={color}
-                      weight={3}
-                      opacity={0.7}
-                      dashArray="5, 10" 
-                    />
+                    <Polyline positions={positions} color={color} weight={3} opacity={0.7} dashArray="5, 10" />
                     <DirectionArrows positions={positions} color={color} />
                  </>
                )}
              </React.Fragment>
            );
         })}
-
-        <MapUpdater activities={allVisibleActivities} />
       </MapContainer>
+      
+      {/* 右上角控制区：图层选择 + 重置 */}
+      {itinerary && (
+        <div className="absolute top-4 right-4 z-[400] flex items-start gap-2">
+          
+          {/* 图层选择器 (点击切换模式) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
+              className={`bg-white dark:bg-stone-800 p-2.5 rounded-full shadow-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors ${
+                isLayerMenuOpen 
+                  ? 'text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20' 
+                  : 'text-stone-600 dark:text-stone-300'
+              }`}
+              title="切换地图源"
+            >
+              <Layers size={18} />
+            </button>
+            
+            {/* 下拉菜单 */}
+            {isLayerMenuOpen && (
+              <>
+                {/* 透明遮罩：点击外部自动关闭菜单 */}
+                <div 
+                  className="fixed inset-0 cursor-default" 
+                  style={{ zIndex: -1 }} 
+                  onClick={() => setIsLayerMenuOpen(false)}
+                />
+                
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-stone-800 rounded-xl shadow-xl border border-stone-200 dark:border-stone-700 overflow-hidden py-1 animate-fade-in">
+                  {(Object.keys(TILE_SOURCES) as TileSourceKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => { setCurrentSource(key); setIsLayerMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-xs font-medium flex items-center justify-between hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors ${
+                        currentSource === key 
+                          ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' 
+                          : 'text-stone-600 dark:text-stone-300'
+                      }`}
+                    >
+                      {TILE_SOURCES[key].name}
+                      {currentSource === key && <Check size={14} />}
+                    </button>
+                  ))}
+                  {/* 提示信息 */}
+                  {currentSource === 'amap' && (
+                    <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-[10px] text-amber-600 dark:text-amber-400 border-t border-amber-100 dark:border-amber-900/30">
+                      注意：高德地图可能存在坐标偏移
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 重置视图按钮 */}
+          <button
+            onClick={handleResetView}
+            className="bg-white dark:bg-stone-800 p-2.5 rounded-full shadow-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-stone-600 dark:text-stone-300"
+            title="重置视图"
+          >
+            <RefreshCcw size={18} />
+          </button>
+        </div>
+      )}
       
       {!itinerary && (
         <div className="absolute inset-0 z-[400] bg-stone-50/50 dark:bg-stone-950/50 backdrop-blur-sm flex items-center justify-center pointer-events-none">
@@ -209,13 +294,17 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         </div>
       )}
 
-      {/* Legend for Day Colors if multiple days are shown */}
+      {/* Legend for Day Colors - 可交互 */}
       {itinerary && selectedDay === null && itinerary.days.length > 1 && (
-         <div className="absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400 border-b border-stone-100 dark:border-stone-800 pb-1">Day Guide</h4>
+         <div className="absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32 custom-scrollbar">
+            <h4 className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400 border-b border-stone-100 dark:border-stone-800 pb-1">点击聚焦</h4>
             {itinerary.days.map(day => (
-              <div key={day.day} className="flex items-center gap-2 mb-1.5 last:mb-0">
-                <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: DAY_COLORS[(day.day - 1) % DAY_COLORS.length] }}></span>
+              <div 
+                key={day.day} 
+                onClick={() => handleDayClick(day.day)}
+                className="flex items-center gap-2 mb-1.5 last:mb-0 cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-800 p-1 rounded transition-colors"
+              >
+                <span className="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0" style={{ backgroundColor: DAY_COLORS[(day.day - 1) % DAY_COLORS.length] }}></span>
                 <span className="text-xs font-medium text-stone-600 dark:text-stone-300">Day {day.day}</span>
               </div>
             ))}
@@ -223,7 +312,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
       )}
 
       {itinerary && selectedDay && (
-         <div className="absolute top-4 right-4 z-[400]">
+         <div className="absolute bottom-6 left-4 z-[400]">
             <span 
               className="text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-xl tracking-wider font-serif"
               style={{ backgroundColor: DAY_COLORS[(selectedDay - 1) % DAY_COLORS.length] }}
