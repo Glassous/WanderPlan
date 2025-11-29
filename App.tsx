@@ -362,7 +362,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 /* 列表容器：确保在 Grid 内占满高度以便滚动 */
-                <div className={`flex-grow ${showMap ? 'lg:overflow-y-auto pr-1' : ''} pb-4 scroll-smooth`}>
+                <div className={`flex-grow ${showMap ? 'lg:overflow-y-auto pr-1 scrollbar-hide' : ''} pb-4 scroll-smooth`}>
                   <ItineraryList 
                       itinerary={itinerary} 
                       partialItinerary={partialItinerary}

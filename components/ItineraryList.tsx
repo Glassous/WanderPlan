@@ -18,7 +18,7 @@ interface ItineraryListProps {
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
   onImportItinerary: (itinerary: Itinerary) => void;
   onOpenShareModal: () => void;
-  mobileMapMode?: boolean; // 新增：控制是否仅显示头部
+  mobileMapMode?: boolean;
 }
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
@@ -52,29 +52,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     a.download = `wanderplan-${safeTitle}-${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (!parsed || !Array.isArray(parsed.days)) throw new Error('invalid');
-      const imported: Itinerary = {
-        id: parsed.id || (crypto as any).randomUUID?.() || `${Date.now()}`,
-        createdAt: parsed.createdAt || Date.now(),
-        tripTitle: parsed.tripTitle || '未命名行程',
-        summary: parsed.summary || '',
-        days: parsed.days,
-        visualTheme: parsed.visualTheme || 'default'
-      };
-      onImportItinerary(imported);
-    } catch {
-      alert('导入失败：请提供有效的行程JSON文件');
-    } finally {
-      e.target.value = '';
-    }
   };
 
   // Initialize edit state when entering edit mode
@@ -164,8 +141,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   if (streaming && !displayItinerary) {
     return (
       <div className="space-y-6 animate-fade-in mt-4">
-        {/* Hero Card with Loading */}
-        <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
+        {/* Hero Card with Loading (No Shadow) */}
+        <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
           <div className="relative z-10">
             <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 text-stone-900 dark:text-white leading-tight">
@@ -183,8 +160,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           </div>
         </div>
         
-        {/* Loading Progress */}
-        <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50">
+        {/* Loading Progress (No Shadow) */}
+        <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-stone-500 dark:text-stone-400">生成行程结构</span>
@@ -229,7 +206,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                <div 
                  key={item.id} 
                  onClick={() => onSelectHistory(item)}
-                 className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                 className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 transition-all duration-300 cursor-pointer"
                >
                  <div className="flex justify-between items-start">
                    <div>
@@ -281,15 +258,15 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
              </button>
              <button 
                onClick={saveEditing}
-               className="flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white shadow-lg hover:shadow-emerald-900/20 transition-all font-medium text-sm"
+               className="flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white transition-all font-medium text-sm"
              >
                <Check size={16} /> 保存变更
              </button>
            </div>
         </div>
 
-        {/* Edit Title & Summary */}
-        <div className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800/50">
+        {/* Edit Title & Summary (No Shadow) */}
+        <div className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl border border-stone-100 dark:border-stone-800/50">
            <label className={editLabel}>行程标题</label>
            <input 
              value={displayItinerary.tripTitle}
@@ -307,9 +284,9 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
            </div>
         </div>
 
-        {/* Edit Days */}
+        {/* Edit Days (No Shadow) */}
         {displayItinerary.days.map((day, dayIdx) => (
-           <div key={day.day} className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl shadow-sm border border-stone-100 dark:border-stone-800/50">
+           <div key={day.day} className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl border border-stone-100 dark:border-stone-800/50">
               <div className="flex items-center gap-4 mb-8">
                  <div className="text-3xl font-serif font-bold text-stone-300 dark:text-stone-700">D{day.day}</div>
                  <div className="flex-grow h-px bg-stone-100 dark:bg-stone-800/50"></div>
@@ -437,7 +414,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         <div className="flex justify-center pt-8 pb-12">
            <button 
              onClick={saveEditing}
-             className="px-12 py-3 bg-emerald-800 text-white rounded-full font-serif text-lg shadow-xl hover:scale-105 transition-transform"
+             className="px-12 py-3 bg-emerald-800 text-white rounded-full font-serif text-lg hover:scale-105 transition-transform"
            >
              保存所有变更
            </button>
@@ -484,7 +461,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   );
 
   const renderHeader = () => (
-    <div className="sticky top-0 z-20 pb-4 pt-1 mb-4 -mx-4 px-4 transition-all duration-300">
+    // FIX: Removed negative margins (-mx-3/-mx-4) to prevent horizontal scrolling
+    <div className="sticky top-0 z-20 pb-4 pt-1 mb-4 transition-all duration-300">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100 truncate">行程概览</h2>
         
@@ -538,8 +516,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     <div className="space-y-6 animate-fade-in pb-10">
       {renderHeader()}
 
-      {/* Hero Card */}
-      <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
+      {/* Hero Card (No Shadow) */}
+      <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
         <div className="relative z-10">
           <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 text-stone-900 dark:text-white leading-tight">
@@ -561,13 +539,13 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs (No Shadow for selected state) */}
       <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
          <button 
            onClick={() => onSelectDay(null)}
            className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
              selectedDay === null 
-               ? 'bg-stone-800 text-white shadow-lg' 
+               ? 'bg-stone-800 text-white' 
                : 'bg-white dark:bg-stone-900/60 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700/50 hover:border-emerald-500'
            }`}
          >
@@ -583,7 +561,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                onClick={() => onSelectDay(day.day)}
                className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
                  selectedDay === day.day
-                   ? 'bg-emerald-800 text-white shadow-lg'
+                   ? 'bg-emerald-800 text-white'
                    : 'bg-white dark:bg-stone-900/60 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700/50 hover:border-emerald-500'
                }`}
              >
@@ -593,7 +571,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
          })}
       </div>
 
-      {/* Days List */}
+      {/* Days List (No Shadow) */}
       <div className="space-y-8">
         {(displayItinerary.days || []).map((day, dayIdx) => {
           // 跳过无效的day对象
@@ -601,7 +579,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           if (selectedDay !== null && day.day !== selectedDay) return null;
 
           return (
-            <div key={day.day || dayIdx} className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden">
+            <div key={day.day || dayIdx} className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl border border-stone-100 dark:border-stone-800/50 overflow-hidden">
               {/* Day Header */}
               <div 
                 className="bg-stone-50/50 dark:bg-stone-800/30 px-8 py-5 border-b border-stone-100 dark:border-stone-800/50 flex items-center justify-between cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
@@ -661,7 +639,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           );
         })}
         {streaming && (displayItinerary.days || []).length === 0 && (
-          <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 p-8 text-center">
+          <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl border border-stone-100 dark:border-stone-800/50 p-8 text-center">
             <div className="flex justify-center space-x-1 mb-4">
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
               <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>

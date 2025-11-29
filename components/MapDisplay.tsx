@@ -49,6 +49,29 @@ const MapUpdater: React.FC<{ activities: Activity[] }> = ({ activities }) => {
   return null;
 };
 
+const MapRevalidator: React.FC = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    // 1. 挂载时立即刷新
+    map.invalidateSize();
+
+    // 2. 监听容器大小变化（处理 tab 切换、窗口缩放、CSS 动画）
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+
+    const container = map.getContainer();
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [map]);
+
+  return null;
+};
+
 // Component to render arrows along the path
 const DirectionArrows: React.FC<{ positions: [number, number][], color: string }> = ({ positions, color }) => {
   if (positions.length < 2) return null;
@@ -106,6 +129,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         scrollWheelZoom={true} 
         className="h-full w-full outline-none"
       >
+        {/* 在此处启用自动刷新 */}
+        <MapRevalidator />
+
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
