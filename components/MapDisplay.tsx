@@ -87,7 +87,7 @@ const DirectionArrows: React.FC<{ positions: [number, number][], color: string }
 
 const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
   // If we have an itinerary, we need to process days to display
-  const daysToDisplay = itinerary?.days.filter(d => selectedDay === null || d.day === selectedDay) || [];
+  const daysToDisplay = itinerary?.days?.filter(d => selectedDay === null || d.day === selectedDay) || [];
   
   // All visible activities for bounds calculation
   const allVisibleActivities = daysToDisplay.flatMap(d => d.activities);

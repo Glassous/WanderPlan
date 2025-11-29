@@ -135,15 +135,43 @@ const App: React.FC = () => {
     setActiveTab('plan');
     setNavigationSource('form');
     
+    // 根据duration预先生成天数结构
+    const duration = parseInt(data.duration.toString()) || 1;
+    const preGeneratedDays = Array.from({ length: duration }, (_, i) => ({
+      day: i + 1,
+      theme: "",
+      activities: []
+    }));
+    
+    // 创建初始的partialItinerary
+    const initialPartialItinerary: Partial<Itinerary> = {
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      tripTitle: `前往${data.destination}的${duration}天行程`,
+      summary: "AI正在生成行程摘要...",
+      days: preGeneratedDays,
+      visualTheme: "default"
+    };
+    
+    // 设置初始的partialItinerary，让用户立即看到行程结构
+    setPartialItinerary(initialPartialItinerary);
+    
     try {
       const result = await generateItinerary(data, (partialResult, isDone) => {
-        // 更新部分行程数据
-        setPartialItinerary(partialResult);
+        // 更新部分行程数据，合并预先生成的天数结构
+        const updatedPartialItinerary = {
+          ...initialPartialItinerary,
+          ...partialResult,
+          // 确保天数结构保持一致
+          days: partialResult.days || initialPartialItinerary.days
+        };
+        
+        setPartialItinerary(updatedPartialItinerary);
         
         // 如果生成完成，更新最终行程
         if (isDone) {
-          setItinerary(partialResult as Itinerary);
-          setHistory(prev => [partialResult as Itinerary, ...prev]);
+          setItinerary(updatedPartialItinerary as Itinerary);
+          setHistory(prev => [updatedPartialItinerary as Itinerary, ...prev]);
           setStreaming(false);
         }
       });

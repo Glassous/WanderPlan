@@ -158,8 +158,63 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   const displayItinerary = isEditing && editedItinerary ? editedItinerary : 
                           streaming ? partialItinerary : itinerary;
 
+  // Show loading animation when streaming and no partial itinerary yet
+  if (streaming && !displayItinerary) {
+    return (
+      <div className="space-y-6 animate-fade-in mt-4">
+        {/* Hero Card with Loading */}
+        <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
+          <div className="relative z-10">
+            <h1 className="text-3xl md:text-4xl font-serif font-bold mb-4 text-stone-900 dark:text-white leading-tight">
+              正在生成行程...
+            </h1>
+            <p className="text-stone-600 dark:text-stone-400 leading-relaxed font-light text-sm md:text-base border-l-2 border-amber-400 pl-4 italic">
+              AI正在为您规划完美的旅行体验...
+            </p>
+            <div className="mt-6 flex items-center justify-center">
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 border-4 border-emerald-200 dark:border-emerald-800 border-t-4 border-t-emerald-600 dark:border-t-emerald-400 rounded-full animate-spin mb-3"></div>
+                <p className="text-sm text-stone-500 dark:text-stone-400">AI正在思考中...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Loading Progress */}
+        <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-stone-500 dark:text-stone-400">生成行程结构</span>
+              <span className="text-xs text-emerald-600 dark:text-emerald-400">进行中</span>
+            </div>
+            <div className="w-full bg-stone-200 dark:bg-stone-800/50 rounded-full h-2">
+              <div className="bg-emerald-600 h-2 rounded-full animate-pulse" style={{ width: '30%' }}></div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-stone-500 dark:text-stone-400">生成每日行程</span>
+              <span className="text-xs text-stone-400 dark:text-stone-500">等待中</span>
+            </div>
+            <div className="w-full bg-stone-200 dark:bg-stone-800/50 rounded-full h-2">
+              <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-stone-500 dark:text-stone-400">优化行程细节</span>
+              <span className="text-xs text-stone-400 dark:text-stone-500">等待中</span>
+            </div>
+            <div className="w-full bg-stone-200 dark:bg-stone-800/50 rounded-full h-2">
+              <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '0%' }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!displayItinerary) {
-    // Show history if no active itinerary
+    // Show history if no active itinerary and not streaming
     if (history.length > 0) {
        return (
          <div className="space-y-6 animate-fade-in mt-4">
@@ -489,25 +544,31 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
          >
            All Days
          </button>
-         {(displayItinerary.days || []).map((day) => (
-           <button
-             key={`filter-${day.day}`}
-             onClick={() => onSelectDay(day.day)}
-             className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-               selectedDay === day.day
-                 ? 'bg-emerald-800 text-white shadow-lg'
-                 : 'bg-white dark:bg-stone-900/60 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700/50 hover:border-emerald-500'
-             }`}
-           >
-             Day {day.day}
-           </button>
-         ))}
+         {(displayItinerary.days || []).map((day, dayIdx) => {
+           // 跳过无效的day对象
+           if (!day || day.day === undefined) return null;
+           
+           return (
+             <button
+               key={`filter-${day.day || dayIdx}`}
+               onClick={() => onSelectDay(day.day)}
+               className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                 selectedDay === day.day
+                   ? 'bg-emerald-800 text-white shadow-lg'
+                   : 'bg-white dark:bg-stone-900/60 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700/50 hover:border-emerald-500'
+               }`}
+             >
+               Day {day.day}
+             </button>
+           );
+         })}
       </div>
 
       {/* Days List */}
       <div className="space-y-8">
         {(displayItinerary.days || []).map((day, dayIdx) => {
-          if (!day) return null;
+          // 跳过无效的day对象
+          if (!day || typeof day !== 'object' || day.day === undefined) return null;
           if (selectedDay !== null && day.day !== selectedDay) return null;
 
           return (
