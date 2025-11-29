@@ -269,6 +269,9 @@ const App: React.FC = () => {
   const currentVisualTheme = isFormVisible || !hasResultData ? 'default' : 
     (itinerary?.visualTheme || partialItinerary?.visualTheme || 'default');
 
+  // 判断是否处于移动端地图模式
+  const isMobileMapMode = !isFormVisible && activeTab === 'map';
+
   return (
     <ThemeBackground theme={currentVisualTheme} mode={activeMode}>
       <div className="flex flex-col font-sans min-h-screen">
@@ -305,17 +308,38 @@ const App: React.FC = () => {
 
         {/* Main Content */}
         {/* 增加顶部 padding 以避开 fixed header */}
-        <main className="flex-grow p-3 md:p-6 lg:p-8 max-w-[1800px] mx-auto w-full mt-20 md:mt-24 pb-24 md:pb-8">
+        <main 
+          className={`
+            flex-grow max-w-[1800px] mx-auto w-full
+            mt-20 md:mt-24 
+            
+            /* 移动端/无地图模式：保留底部间距给 TabBar，允许页面滚动 */
+            ${!showMap ? 'p-3 md:p-6 lg:p-8 pb-24 md:pb-8' : ''}
+
+            /* 桌面端地图模式：固定高度，禁止页面滚动，精确控制 Padding */
+            ${showMap ? 'lg:h-[calc(100vh-6rem)] lg:overflow-hidden lg:p-6 lg:pb-6 p-3 pb-24' : ''}
+          `}
+        >
           
-          <div className={`grid grid-cols-1 ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} gap-6 transition-all duration-500 ease-in-out ${showMap ? 'lg:h-[calc(100vh-8rem)]' : 'h-auto'}`}>
+          <div className={`
+            grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out
+            ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} 
+            /* 关键修改：地图模式下，Grid 高度直接填满 Main 容器，不再使用 calc 计算 */
+            ${showMap ? 'lg:h-full' : 'h-auto'}
+          `}>
             
             {/* Left Panel: Form or Itinerary List */}
             <div className={`
               flex flex-col gap-6 transition-all duration-500
-              ${showMap ? 'lg:col-span-4 lg:overflow-hidden' : 'max-w-4xl mx-auto w-full'}
+              /* 列表区域：在地图模式下，限制高度并允许内部滚动 */
+              ${showMap ? 'lg:col-span-4 lg:h-full lg:overflow-hidden lg:rounded-3xl' : 'max-w-4xl mx-auto w-full'}
               
-              /* 移动端显示逻辑：如果是表单模式，始终显示；如果是结果模式，根据 activeTab 判断 */
-              ${!isFormVisible && activeTab === 'map' ? 'hidden lg:flex' : 'flex'}
+              /* 移动端显示逻辑修改：
+                 如果是表单模式，始终显示；
+                 如果是结果模式且在地图Tab，也显示（但通过props控制只显示Header）
+                 否则正常显示
+              */
+              ${!isFormVisible && activeTab === 'map' ? 'flex lg:flex' : 'flex'}
             `}>
               
               {isFormVisible ? (
@@ -337,7 +361,8 @@ const App: React.FC = () => {
                     )}
                 </div>
               ) : (
-                <div className="flex-grow lg:overflow-y-auto pr-1 pb-4 scroll-smooth">
+                /* 列表容器：确保在 Grid 内占满高度以便滚动 */
+                <div className={`flex-grow ${showMap ? 'lg:overflow-y-auto pr-1' : ''} pb-4 scroll-smooth`}>
                   <ItineraryList 
                       itinerary={itinerary} 
                       partialItinerary={partialItinerary}
@@ -353,6 +378,7 @@ const App: React.FC = () => {
                       onDeleteHistory={handleDeleteHistory}
                       onImportItinerary={handleImportItinerary}
                       onOpenShareModal={handleOpenShareModal}
+                      mobileMapMode={isMobileMapMode}
                   />
                 </div>
               )}
@@ -362,7 +388,10 @@ const App: React.FC = () => {
             {/* 桌面端：有数据时显示；移动端：有数据且Tab切到map时显示 */}
             {hasResultData && !isFormVisible && (
               <div className={`
-                 lg:col-span-8 h-[60vh] lg:h-full rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/40 border border-stone-200 dark:border-stone-800/50 relative bg-stone-100 dark:bg-stone-900/50
+                 lg:col-span-8 
+                 /* 地图容器：高度填满，圆角与阴影 */
+                 h-[60vh] lg:h-full 
+                 rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/40 border border-stone-200 dark:border-stone-800/50 relative bg-stone-100 dark:bg-stone-900/50
                  ${activeTab === 'map' ? 'block' : 'hidden lg:block'}
               `}>
                 <MapDisplay itinerary={itinerary} selectedDay={selectedDay} />

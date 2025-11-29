@@ -18,6 +18,7 @@ interface ItineraryListProps {
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
   onImportItinerary: (itinerary: Itinerary) => void;
   onOpenShareModal: () => void;
+  mobileMapMode?: boolean; // 新增：控制是否仅显示头部
 }
 
 const ItineraryList: React.FC<ItineraryListProps> = ({ 
@@ -34,7 +35,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   onSelectHistory,
   onDeleteHistory,
   onImportItinerary,
-  onOpenShareModal
+  onOpenShareModal,
+  mobileMapMode = false
 }) => {
   const [editedItinerary, setEditedItinerary] = useState<Itinerary | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -445,69 +447,96 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   }
 
   // --- Render Standard List View (Light Luxury Style) ---
-  return (
-    <div className="space-y-6 animate-fade-in pb-10">
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100">行程概览</h2>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={startEditing}
-              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
-            >
-              <Edit3 size={14} />
-              编辑
-            </button>
-            <button
-              onClick={handleExport}
-              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-            >
-              <Save size={14} />
-              导出
-            </button>
-            <button 
-              onClick={onReplan}
-              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors"
-            >
-              <RotateCcw size={14} />
-              返回
-            </button>
+  const ShareActions = () => (
+    <>
+      {!(displayItinerary.inCommunity) && (
+        <button
+          onClick={async () => {
+            if (!itinerary || sharing) return
+            try {
+              setSharing(true)
+              const id = await shareItinerary(itinerary)
+              const params = new URLSearchParams(window.location.search)
+              params.set('share', id)
+              window.history.replaceState(null, '', `?${params.toString()}`)
+              onUpdateItinerary({ ...(isEditing && editedItinerary ? editedItinerary : itinerary), shareId: id, inCommunity: true })
+            } catch (e) {
+              alert('分享失败，请稍后重试')
+            } finally {
+              setSharing(false)
+            }
+          }}
+          className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-4 py-2 rounded-full transition-colors border border-amber-100 dark:border-amber-900/30"
+        >
+          <Share2 size={14} />
+          {sharing ? '分享中…' : '分享到社区'}
+        </button>
+      )}
+      {displayItinerary.inCommunity && displayItinerary.shareId && (
+        <button
+          onClick={onOpenShareModal}
+          className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
+        >
+          分享链接
+        </button>
+      )}
+    </>
+  );
+
+  const renderHeader = () => (
+    <div className="sticky top-0 z-20 pb-4 pt-1 mb-4 -mx-4 px-4 transition-all duration-300">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100 truncate">行程概览</h2>
+        
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* PC端直接显示分享按钮 */}
+          <div className="hidden md:flex items-center gap-2">
+             <ShareActions />
           </div>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          {!(displayItinerary.inCommunity) && (
-            <button
-              onClick={async () => {
-                if (!itinerary || sharing) return
-                try {
-                  setSharing(true)
-                  const id = await shareItinerary(itinerary)
-                  const params = new URLSearchParams(window.location.search)
-                  params.set('share', id)
-                  window.history.replaceState(null, '', `?${params.toString()}`)
-                  onUpdateItinerary({ ...(isEditing && editedItinerary ? editedItinerary : itinerary), shareId: id, inCommunity: true })
-                } catch (e) {
-                  alert('分享失败，请稍后重试')
-                } finally {
-                  setSharing(false)
-                }
-              }}
-              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 px-4 py-2 rounded-full transition-colors border border-amber-100 dark:border-amber-900/30"
-            >
-              <Share2 size={14} />
-              {sharing ? '分享中…' : '分享到社区'}
-            </button>
-          )}
-          {displayItinerary.inCommunity && displayItinerary.shareId && (
-            <button
-              onClick={onOpenShareModal}
-              className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50"
-            >
-              分享链接
-            </button>
-          )}
+
+          <button 
+            onClick={startEditing}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 px-4 py-2 rounded-full transition-colors border border-emerald-100 dark:border-emerald-900/50 whitespace-nowrap"
+          >
+            <Edit3 size={14} />
+            编辑
+          </button>
+          <button
+            onClick={handleExport}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors whitespace-nowrap"
+          >
+            <Save size={14} />
+            导出
+          </button>
+          <button 
+            onClick={onReplan}
+            className="text-xs font-medium uppercase tracking-wider flex items-center gap-1.5 text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 px-4 py-2 rounded-full transition-colors whitespace-nowrap"
+          >
+            <RotateCcw size={14} />
+            返回
+          </button>
         </div>
       </div>
+      
+      {/* 移动端分享按钮换行显示 */}
+      <div className="flex md:hidden items-center justify-end gap-2 mt-3 animate-fade-in">
+        <ShareActions />
+      </div>
+    </div>
+  );
+
+  // 如果是在移动端地图模式下，只渲染头部（用于显示操作按钮）
+  if (mobileMapMode) {
+    return (
+      <div>
+        {renderHeader()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-fade-in pb-10">
+      {renderHeader()}
 
       {/* Hero Card */}
       <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-black/20 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
