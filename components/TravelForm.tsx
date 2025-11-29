@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TripFormData, Itinerary } from '../types';
-import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2 } from 'lucide-react';
+import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2, RefreshCw } from 'lucide-react';
 import { listCommunityItems, CommunityItem, fetchSharedItinerary } from '../services/community'
 
 interface TravelFormProps {
@@ -44,26 +44,28 @@ const TravelForm: React.FC<TravelFormProps> = ({
     onSubmit(formData);
   };
 
-  const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400";
+  // 优化移动端输入框样式
+  const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400 text-sm md:text-base";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
+  
   const [view, setView] = useState<'plan' | 'history' | 'custom' | 'community'>(initialTab);
   
-  // Update view when initialTab changes (from parent)
   useEffect(() => {
     setView(initialTab);
   }, [initialTab]);
   
-  // Call onTabChange when view changes
   useEffect(() => {
     onTabChange?.(view);
   }, [view, onTabChange]);
+
   const importInputRef = useRef<HTMLInputElement>(null);
   const [community, setCommunity] = useState<CommunityItem[]>([])
   const [communityLoading, setCommunityLoading] = useState(false)
   const [communityQuery, setCommunityQuery] = useState('')
   const [loadingCommunityId, setLoadingCommunityId] = useState<string | null>(null)
   const CACHE_KEY = 'wanderplan_community_cache'
-  const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分钟缓存过期时间
+  const CACHE_EXPIRY_TIME = 5 * 60 * 1000; 
+
   const budgetPlaceholders: Record<string, string> = {
     '经济型': '例如：偏向公交与步行，小吃街与公园，免费或低价景点',
     '中等': '例如：经典必去景点+本地特色餐厅，适度购物与文化体验',
@@ -71,21 +73,9 @@ const TravelForm: React.FC<TravelFormProps> = ({
   };
 
   const budgetPresets: Record<string, string[]> = {
-    '经济型': [
-      '街头美食与本地市集',
-      '免费博物馆与公园散步',
-      '公交+步行优先，节约交通成本'
-    ],
-    '中等': [
-      '经典景点与特色餐厅搭配',
-      '文化体验与小众博物馆',
-      '适度购物与咖啡馆休憩'
-    ],
-    '奢华': [
-      '米其林餐厅与高端SPA',
-      '精品酒店下午茶体验',
-      '私人导览与包车移动'
-    ]
+    '经济型': ['街头美食', '免费博物馆', '公交优先'],
+    '中等': ['经典景点', '特色餐厅', '文化体验'],
+    '奢华': ['米其林', '高端SPA', '包车']
   };
 
   const applyPreset = (text: string) => {
@@ -127,7 +117,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
     const run = async () => {
       if (view !== 'community') return
       
-      // 从localStorage读取缓存
       const now = Date.now()
       let cachedData = null
       try {
@@ -139,9 +128,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
         console.error('Failed to read community cache:', e)
       }
       
-      // 检查缓存是否有效
       if (cachedData && (now - cachedData.timestamp < CACHE_EXPIRY_TIME)) {
-        // 使用缓存数据
         if (active) {
           setCommunity(cachedData.items)
           setCommunityLoading(false)
@@ -149,13 +136,11 @@ const TravelForm: React.FC<TravelFormProps> = ({
         return
       }
       
-      // 缓存无效或不存在，从服务器获取数据
       try {
         setCommunityLoading(true)
         const items = await listCommunityItems(50)
         if (active) {
           setCommunity(items)
-          // 更新localStorage缓存
           const cacheData = { items, timestamp: now }
           localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
         }
@@ -183,59 +168,63 @@ const TravelForm: React.FC<TravelFormProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-3xl font-serif font-bold text-stone-800 dark:text-stone-100 flex items-center gap-3">
-          <Sparkles className="text-amber-500" size={24} />
-          <span className="bg-gradient-to-r from-emerald-800 to-stone-600 dark:from-emerald-400 dark:to-stone-300 bg-clip-text text-transparent">
+    <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
+      
+      {/* 响应式头部：移动端垂直排列，桌面端水平排列 */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
+        <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 dark:text-stone-100 flex items-center gap-3">
+          <Sparkles className="text-amber-500 flex-shrink-0" size={24} />
+          <span className="bg-gradient-to-r from-emerald-800 to-stone-600 dark:from-emerald-400 dark:to-stone-300 bg-clip-text text-transparent whitespace-nowrap">
             {view === 'community' ? '社区' : '定制您的旅程'}
           </span>
         </h2>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50">
-            <button
-              type="button"
-              onClick={() => setView('plan')}
-              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'plan' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
-            >
-              规划
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('custom')}
-              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'custom' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
-            >
-              自定义
-            </button>
-            <button
-              type="button"
-              onClick={() => setView('history')}
-              className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex items-center gap-1 ${view === 'history' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-500 dark:text-stone-400'}`}
-            >
-              <HistoryIcon size={14} /> 历史记录
-            </button>
+        
+        {/* 按钮组：移动端支持水平滚动 */}
+        <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0 w-full md:w-auto">
+          <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50 flex-shrink-0">
+            {['plan', 'custom', 'history'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setView(tab as any)}
+                className={`px-3 md:px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors whitespace-nowrap ${
+                  view === tab 
+                    ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' 
+                    : 'text-stone-500 dark:text-stone-400'
+                }`}
+              >
+                {tab === 'plan' ? '规划' : tab === 'custom' ? '自定义' : '历史'}
+              </button>
+            ))}
           </div>
+          
+          <div className="w-px h-6 bg-stone-200 dark:bg-stone-700/50 flex-shrink-0 mx-1"></div>
+
           <button
             type="button"
             onClick={() => setView('community')}
-            className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors ${view === 'community' ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50'}`}
+            className={`px-3 md:px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors flex-shrink-0 ${
+              view === 'community' 
+                ? 'bg-white dark:bg-stone-900 text-emerald-800 dark:text-emerald-400 shadow' 
+                : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50'
+            }`}
           >
             社区
           </button>
-          <div className="flex items-center">
-            <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
-            <button
-              type="button"
-              onClick={() => importInputRef.current?.click()}
-              className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50 flex items-center gap-1"
-            >
-              <Upload size={14} /> 导入
-            </button>
-          </div>
+          
+          <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="px-3 md:px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full transition-colors text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 border border-stone-200 dark:border-stone-700/50 flex items-center gap-1 flex-shrink-0"
+          >
+            <Upload size={14} /> 导入
+          </button>
         </div>
       </div>
+
       {view === 'plan' ? (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
         
         {/* Destination */}
         <div>
@@ -254,7 +243,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
           </div>
         </div>
 
-        {/* Duration (Standalone) */}
+        {/* Duration */}
         <div>
           <label className={labelClasses}>天数</label>
           <div className="relative">
@@ -270,13 +259,13 @@ const TravelForm: React.FC<TravelFormProps> = ({
             />
             <span className="absolute right-3 top-3 text-sm text-stone-400 pointer-events-none">Days</span>
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
             {[3,5,7,10].map(d => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, duration: d }))}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex-shrink-0 ${
                   formData.duration === d ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
                 }`}
               >
@@ -286,7 +275,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
           </div>
         </div>
 
-        {/* Travelers (Standalone) */}
+        {/* Travelers */}
         <div>
           <label className={labelClasses}>同行者</label>
           <input
@@ -297,7 +286,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
             placeholder="自定义填写，如：独自一人 / 情侣 / 家庭出游"
             className={inputClasses}
           />
-          <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="grid grid-cols-2 gap-2 md:gap-3 mt-2">
             {[
               { label: '独自一人', icon: <User size={16} /> },
               { label: '情侣/夫妻', icon: <Heart size={16} /> },
@@ -308,7 +297,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
                 key={opt.label}
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, travelers: opt.label }))}
-                className={`py-2 px-4 rounded-xl text-sm font-medium transition-all flex items-center gap-2 justify-center ${
+                className={`py-2 px-2 md:px-4 rounded-xl text-xs md:text-sm font-medium transition-all flex items-center gap-1.5 md:gap-2 justify-center ${
                   formData.travelers === opt.label 
                     ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow-lg' 
                     : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700/50'
@@ -322,7 +311,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
         </div>
 
         {/* Times */}
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-2 gap-4 md:gap-8">
           <div>
              <label className={labelClasses}>首日出发 (可选)</label>
              <input
@@ -332,20 +321,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
                 onChange={handleChange}
                 className={inputClasses}
               />
-             <div className="flex gap-2 mt-2">
-               {["08:00","10:00","14:00"].map(t => (
-                 <button
-                   key={t}
-                   type="button"
-                   onClick={() => setFormData(prev => ({ ...prev, startTime: t }))}
-                   className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
-                     formData.startTime === t ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
-                   }`}
-                 >
-                   <Clock size={12} /> {t}
-                 </button>
-               ))}
-             </div>
           </div>
           <div>
              <label className={labelClasses}>末日返程 (可选)</label>
@@ -356,33 +331,19 @@ const TravelForm: React.FC<TravelFormProps> = ({
                 onChange={handleChange}
                 className={inputClasses}
               />
-             <div className="flex gap-2 mt-2">
-               {["16:00","18:00","20:00"].map(t => (
-                 <button
-                   key={t}
-                   type="button"
-                   onClick={() => setFormData(prev => ({ ...prev, endTime: t }))}
-                   className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
-                     formData.endTime === t ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow' : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400'
-                   }`}
-                 >
-                   <Clock size={12} /> {t}
-                 </button>
-               ))}
-             </div>
           </div>
         </div>
 
         {/* Budget */}
         <div>
           <label className={labelClasses}>预算等级</label>
-          <div className="grid grid-cols-3 gap-3 mt-2">
+          <div className="grid grid-cols-3 gap-2 md:gap-3 mt-2">
              {['经济型', '中等', '奢华'].map((opt) => (
                 <button
                   key={opt}
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, budget: opt }))}
-                  className={`py-2 px-4 rounded-xl text-sm font-medium transition-all ${
+                  className={`py-2 px-2 md:px-4 rounded-xl text-xs md:text-sm font-medium transition-all ${
                     formData.budget === opt 
                       ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 shadow-lg' 
                       : 'bg-stone-100 dark:bg-stone-800/50 text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700/50'
@@ -400,19 +361,9 @@ const TravelForm: React.FC<TravelFormProps> = ({
           <textarea
             name="interests"
             rows={3}
-            placeholder={budgetPlaceholders[formData.budget] || '例如：想要体验米其林餐厅，参观小众博物馆...'}
+            placeholder={budgetPlaceholders[formData.budget] || '例如：想要体验米其林餐厅...'}
             value={formData.interests}
             onChange={handleChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Tab') {
-                const ph = (e.currentTarget.placeholder || '');
-                const sanitized = ph.replace(/^例如[:：]\s*/i, '').replace(/\.\.\.$/, '');
-                if (!formData.interests.trim()) {
-                  e.preventDefault();
-                  setFormData(prev => ({ ...prev, interests: sanitized }));
-                }
-              }
-            }}
             className={`${inputClasses} resize-none`}
           />
           <div className="flex flex-wrap gap-2 mt-2">
@@ -432,7 +383,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 mt-4 ${
+            className={`w-full py-3 md:py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 mt-4 md:mt-6 text-sm md:text-base ${
               isLoading
                 ? 'bg-stone-400 cursor-not-allowed'
                 : 'bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-2xl hover:-translate-y-1'
@@ -440,6 +391,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-3">
+                 <Loader2 className="animate-spin" size={18} />
                  <span className="animate-pulse">AI 正在构思...</span>
               </span>
             ) : (
@@ -448,20 +400,20 @@ const TravelForm: React.FC<TravelFormProps> = ({
           </button>
         </form>
       ) : view === 'history' ? (
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
           {history.length === 0 ? (
-            <div className="text-sm text-stone-400 dark:text-stone-500 italic">暂无历史记录</div>
+            <div className="text-sm text-stone-400 dark:text-stone-500 italic text-center py-8">暂无历史记录</div>
           ) : (
             <div className="grid gap-4">
               {history.map(item => (
                 <div 
                   key={item.id} 
                   onClick={() => onSelectHistory(item)}
-                  className="group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  className="group relative p-5 bg-stone-50/50 dark:bg-stone-800/30 rounded-xl border border-stone-100 dark:border-stone-700/50 hover:border-emerald-500/30 hover:bg-white dark:hover:bg-stone-800 transition-all duration-300 cursor-pointer"
                 >
                   <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <div className="font-serif font-bold text-stone-800 dark:text-stone-100 mb-1 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors truncate">
                         {item.tripTitle}
                       </div>
                       <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
@@ -470,7 +422,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
                     </div>
                     <button 
                       onClick={(e) => onDeleteHistory(item.id, e)}
-                      className="p-2 text-stone-300 hover:text-red-500 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-2 text-stone-300 hover:text-red-500 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-full transition-colors flex-shrink-0"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -485,67 +437,65 @@ const TravelForm: React.FC<TravelFormProps> = ({
           <div className="flex items-center gap-2">
             <input
               type="text"
-              placeholder="搜索社区行程标题"
+              placeholder="搜索社区..."
               value={communityQuery}
               onChange={(e) => setCommunityQuery(e.target.value)}
-              className="flex-1 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-2 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400"
+              className="flex-1 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-2 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400 text-sm"
             />
             <button
               type="button"
               onClick={() => {
-                // 清除缓存并重新获取社区数据
                 localStorage.removeItem(CACHE_KEY);
                 setCommunityLoading(true);
                 listCommunityItems(50)
                   .then(items => {
                     setCommunity(items);
-                    // 更新缓存
                     localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
                   })
                   .catch(() => setCommunity([]))
                   .finally(() => setCommunityLoading(false));
               }}
               className="p-2 bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 hover:border-emerald-600 dark:hover:border-emerald-500 transition-colors rounded-xl text-stone-600 dark:text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-              title="刷新社区"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+              <RefreshCw size={18} />
             </button>
           </div>
-          {communityLoading ? (
-            <div className="text-sm text-stone-400 dark:text-stone-500 italic">加载社区内容中…</div>
-          ) : community.length === 0 ? (
-            <div className="text-sm text-stone-400 dark:text-stone-500 italic">暂无社区分享</div>
-          ) : (
-            <div className="grid gap-4">
-              {(communityQuery ? community.filter(c => c.trip_title.toLowerCase().includes(communityQuery.toLowerCase())) : community).map(item => (
-                <div
-                  key={item.id}
-                  className={`group relative p-6 bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-2xl border border-stone-100 dark:border-stone-800/50 hover:border-emerald-500/30 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer ${loadingCommunityId === item.id ? 'opacity-80' : ''}`}
-                  onClick={() => handleCommunityItemClick(item.id)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className={`font-serif text-lg font-bold text-stone-800 dark:text-stone-100 mb-2 group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors ${loadingCommunityId === item.id ? 'opacity-60' : ''}`}>
-                        {item.trip_title}
+          <div className="max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
+            {communityLoading ? (
+               <div className="flex justify-center py-8 text-stone-400"><Loader2 className="animate-spin" /></div>
+            ) : community.length === 0 ? (
+              <div className="text-sm text-stone-400 dark:text-stone-500 italic text-center py-8">暂无内容</div>
+            ) : (
+              <div className="grid gap-3">
+                {(communityQuery ? community.filter(c => c.trip_title.toLowerCase().includes(communityQuery.toLowerCase())) : community).map(item => (
+                  <div
+                    key={item.id}
+                    className={`group p-4 bg-stone-50/50 dark:bg-stone-800/30 rounded-xl border border-stone-100 dark:border-stone-700/50 hover:bg-white dark:hover:bg-stone-800 transition-all cursor-pointer ${loadingCommunityId === item.id ? 'opacity-60' : ''}`}
+                    onClick={() => handleCommunityItemClick(item.id)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-serif font-bold text-stone-800 dark:text-stone-100 truncate text-sm md:text-base">
+                          {item.trip_title}
+                        </div>
+                        <div className="text-xs text-stone-400 mt-1">
+                          {new Date(item.created_at).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="text-xs font-medium text-stone-400 uppercase tracking-wider">
-                        {new Date(item.created_at).toLocaleDateString()} 创建
-                      </div>
+                      {loadingCommunityId === item.id && (
+                        <Loader2 className="animate-spin text-emerald-600 ml-2" size={16} />
+                      )}
                     </div>
-                    {loadingCommunityId === item.id && (
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="animate-spin text-emerald-600 dark:text-emerald-400" size={20} />
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div>
+        <div className="space-y-4 md:space-y-6">
+          {/* Custom Form Content */}
+           <div>
             <label className={labelClasses}>行程标题</label>
             <input
               type="text"
@@ -592,7 +542,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
               };
               onImportItinerary(manual);
             }}
-            className="w-full py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 bg-emerald-800 hover:bg-emerald-900"
+            className="w-full py-3 md:py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 bg-emerald-800 hover:bg-emerald-900 text-sm md:text-base"
           >
             创建空白行程
           </button>
@@ -603,6 +553,3 @@ const TravelForm: React.FC<TravelFormProps> = ({
 };
 
 export default TravelForm;
-  
-
-
