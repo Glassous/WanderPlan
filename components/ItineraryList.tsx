@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Plus, Share2, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, X, History, Plus, Share2, Trash2, RotateCcw, ArrowLeft } from 'lucide-react';
 import { shareItinerary } from '../services/community'
 
 interface ItineraryListProps {
@@ -152,6 +152,15 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
       </h2>
       
       <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Return button - only visible on desktop */}
+        <button 
+          onClick={onReplan}
+          className="hidden md:flex p-2 rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+          title="返回"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        
         {/* Share buttons - now visible on all screen sizes */}
         {!(displayItinerary?.inCommunity) && (
           <button
@@ -200,13 +209,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           title="导出"
         >
           <Save size={18} />
-        </button>
-        <button 
-          onClick={onReplan}
-          className="p-2 rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
-          title="返回"
-        >
-          <RotateCcw size={18} />
         </button>
       </div>
     </div>

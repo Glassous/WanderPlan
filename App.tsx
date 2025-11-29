@@ -6,7 +6,7 @@ import ThemeBackground from './components/ThemeBackground';
 import { generateItinerary } from './services/qwenservice';
 import { fetchSharedItinerary } from './services/community'
 import { TripFormData, Itinerary, Activity } from './types';
-import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather, Github } from 'lucide-react';
+import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather, Github, ArrowLeft } from 'lucide-react';
 
 type Theme = 'system' | 'light' | 'dark';
 
@@ -287,6 +287,15 @@ const App: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2 md:gap-4">
+              {!isFormVisible && (
+                <button 
+                  onClick={handleReplan}
+                  className="md:hidden p-2 rounded-full text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+                  title="返回"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
               <div className="text-xs font-serif italic text-stone-500 dark:text-stone-400 hidden sm:block">Curated by Qwen AI</div>
               <div className="flex items-center gap-1.5">
                 <button 
