@@ -133,6 +133,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     setEditedItinerary(newItinerary);
   };
 
+  const handleLocationClick = (locationName: string) => {
+    if (!locationName || locationName === "位置规划中") return;
+    const searchQuery = encodeURIComponent(locationName);
+    window.open(`https://www.bing.com/search?q=${searchQuery}`, '_blank');
+  };
+
   const displayItinerary = isEditing && editedItinerary ? editedItinerary : 
                           streaming ? partialItinerary : itinerary;
 
@@ -594,7 +600,15 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                         </p>
                         <div className="flex items-center text-xs text-stone-400 dark:text-stone-500 font-medium">
                           <MapPin className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                          {activity.locationName || "位置规划中"}
+                          <span 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLocationClick(activity.locationName || "");
+                            }}
+                            className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline cursor-pointer transition-colors"
+                          >
+                            {activity.locationName || "位置规划中"}
+                          </span>
                         </div>
                       </div>
                     </div>
