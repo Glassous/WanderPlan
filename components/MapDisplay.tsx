@@ -322,7 +322,7 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay, focused
       )}
 
       {itinerary && selectedDay === null && itinerary.days.length > 1 && (
-         <div className="absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32 custom-scrollbar">
+         <div className="hidden md:block absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32 custom-scrollbar">
             <h4 className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400 border-b border-stone-100 dark:border-stone-800 pb-1">点击聚焦</h4>
             {itinerary.days.map(day => (
               <div 

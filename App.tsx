@@ -26,7 +26,6 @@ const App: React.FC = () => {
   const [isFormVisible, setIsFormVisible] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
-  // 新增：聚焦活动状态
   const [focusedActivity, setFocusedActivity] = useState<Activity | null>(null);
   
   const [isEditing, setIsEditing] = useState(false);
@@ -257,16 +256,13 @@ const App: React.FC = () => {
 
   const cancelDelete = () => setConfirmDeleteId(null);
 
-  // 新增：处理活动点击事件
   const handleActivityClick = (activity: Activity) => {
     setFocusedActivity(activity);
-    // 移动端体验优化：点击后自动切换到地图视图
     if (window.innerWidth < 1024) {
       setActiveTab('map');
     }
   };
 
-  // 修改：切换天数时清除聚焦状态
   const handleSelectDay = (day: number | null) => {
     setSelectedDay(day);
     setFocusedActivity(null);
@@ -320,13 +316,13 @@ const App: React.FC = () => {
           `}
         >
           <div className={`
-            grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out
+            grid grid-cols-1 gap-2 md:gap-6 transition-all duration-500 ease-in-out
             ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} 
             ${showMap ? 'lg:h-full' : 'h-auto'}
           `}>
             
             <div className={`
-              flex flex-col gap-6 transition-all duration-500
+              flex flex-col transition-all duration-500
               ${showMap ? 'lg:col-span-4 lg:h-full lg:overflow-hidden lg:rounded-3xl' : 'max-w-4xl mx-auto w-full'}
               ${!isFormVisible && activeTab === 'map' ? 'flex lg:flex' : 'flex'}
             `}>
@@ -350,7 +346,7 @@ const App: React.FC = () => {
                     )}
                 </div>
               ) : (
-                <div className={`flex-grow ${showMap ? 'lg:overflow-y-auto pr-1 scrollbar-hide' : ''} pb-4 scroll-smooth`}>
+                <div className={`flex-grow h-full ${showMap ? '' : ''} pb-0 scroll-smooth`}>
                   <ItineraryList 
                       itinerary={itinerary} 
                       partialItinerary={partialItinerary}
@@ -360,7 +356,7 @@ const App: React.FC = () => {
                       isEditing={isEditing}
                       setIsEditing={setIsEditing}
                       onSelectDay={handleSelectDay}
-                      onActivityClick={handleActivityClick} // 传递点击回调
+                      onActivityClick={handleActivityClick}
                       onReplan={handleReplan}
                       onUpdateItinerary={handleUpdateItinerary}
                       onSelectHistory={handleSelectHistory}
@@ -383,7 +379,7 @@ const App: React.FC = () => {
                 <MapDisplay 
                   itinerary={itinerary} 
                   selectedDay={selectedDay} 
-                  focusedActivity={focusedActivity} // 传递聚焦状态
+                  focusedActivity={focusedActivity}
                 />
               </div>
             )}
@@ -395,25 +391,25 @@ const App: React.FC = () => {
           <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-stone-800/90 backdrop-blur-md border border-stone-200 dark:border-stone-700 p-1.5 rounded-full flex shadow-xl z-50 gap-1">
             <button 
               onClick={() => setActiveTab('plan')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 ${
+              className={`flex items-center gap-2 px-4 py-3 rounded-full transition-all duration-300 ${
                 activeTab === 'plan' 
                   ? 'bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-md' 
                   : 'text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700/50'
               }`}
             >
               <Compass size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">行程</span>
+              <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">行程</span>
             </button>
             <button 
               onClick={() => setActiveTab('map')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300 ${
+              className={`flex items-center gap-2 px-4 py-3 rounded-full transition-all duration-300 ${
                 activeTab === 'map' 
                   ? 'bg-emerald-800 dark:bg-emerald-600 text-white shadow-md' 
                   : 'text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-700/50'
               }`}
             >
               <MapIcon size={18} />
-              <span className="text-xs font-bold uppercase tracking-wider">地图</span>
+              <span className="text-xs font-bold uppercase tracking-wider whitespace-nowrap">地图</span>
             </button>
           </div>
         )}
