@@ -49,6 +49,7 @@ const MapUpdater: React.FC<{ activities: Activity[] }> = ({ activities }) => {
   return null;
 };
 
+// 自动刷新组件：解决 display:none 切换或动画导致的地图灰显/瓦片缺失问题
 const MapRevalidator: React.FC = () => {
   const map = useMap();
 
@@ -129,13 +130,28 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         scrollWheelZoom={true} 
         className="h-full w-full outline-none"
       >
-        {/* 在此处启用自动刷新 */}
+        {/* 自动刷新修复 */}
         <MapRevalidator />
 
+        {/* === 核心修改：地图瓦片源 ===
+            方案 A (默认): CartoDB Positron
+            特点：全球数据完整、风格极简现代（非常适合旅游App）、国内访问速度快（Fastly CDN）。
+            坐标系：WGS-84（与 AI 生成的坐标完美匹配，无偏移）。
+        */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
+
+        {/* 方案 B (备用): Esri World Street Map
+            如果 CartoDB 在您那里也加载失败，请【注释掉上面的】，【解开下面的注释】。
+            特点：企业级稳定性、全球数据详尽、风格偏传统地图。
+            
+        <TileLayer
+          attribution='Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+        /> 
+        */}
         
         {daysToDisplay.map((day, dayIndex) => {
            const color = DAY_COLORS[(day.day - 1) % DAY_COLORS.length];
