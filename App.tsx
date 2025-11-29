@@ -269,7 +269,8 @@ const App: React.FC = () => {
   };
 
   const hasResultData = !!(itinerary || partialItinerary);
-  const showMap = !isFormVisible && !isEditing && hasResultData;
+  // 修改处：增加 !streaming 判断，确保在生成过程中不显示地图，避免布局跳动和地图重绘
+  const showMap = !isFormVisible && !isEditing && hasResultData && !streaming;
   const currentVisualTheme = isFormVisible || !hasResultData ? 'default' : 
     (itinerary?.visualTheme || partialItinerary?.visualTheme || 'default');
   const isMobileMapMode = !isFormVisible && activeTab === 'map';
@@ -378,7 +379,8 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {hasResultData && !isFormVisible && (
+            {/* 修改处：增加 !streaming 判断，确保流式生成时不渲染地图容器 */}
+            {hasResultData && !isFormVisible && !streaming && (
               <div className={`
                  lg:col-span-8 
                  h-[60vh] lg:h-full 
@@ -396,7 +398,8 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {!isFormVisible && hasResultData && (
+        {/* 修改处：增加 !streaming 判断，流式生成时隐藏移动端底部切换按钮 */}
+        {!isFormVisible && hasResultData && !streaming && (
           <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-stone-800/90 backdrop-blur-md border border-stone-200 dark:border-stone-700 p-1.5 rounded-full flex shadow-xl z-50 gap-1">
             <button 
               onClick={() => setActiveTab('plan')}
