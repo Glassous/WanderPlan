@@ -234,6 +234,33 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
                   days: Array.isArray(partialResult.days) ? partialResult.days : []
                 };
 
+                // 如果days数组存在但为空，或者days数组中的某些day对象不完整，进行修复
+                if (partialItinerary.days.length === 0) {
+                  const duration = parseInt(data.duration.toString()) || 1;
+                  partialItinerary.days = Array.from({ length: duration }, (_, i) => ({
+                    day: i + 1,
+                    theme: `第${i+1}天行程`,
+                    activities: []
+                  }));
+                } else {
+                  // 确保每个day对象都有必要的字段
+                  partialItinerary.days = partialItinerary.days.map((day: any, index: number) => {
+                    if (!day || typeof day !== 'object') {
+                      return {
+                        day: index + 1,
+                        theme: `第${index + 1}天行程`,
+                        activities: []
+                      };
+                    }
+                    
+                    return {
+                      day: day.day !== undefined ? day.day : index + 1,
+                      theme: day.theme || `第${index + 1}天行程`,
+                      activities: Array.isArray(day.activities) ? day.activities : []
+                    };
+                  });
+                }
+
                 streamCallback(partialItinerary as Partial<Itinerary>, false);
               }
               // -----------------------------------------------------
@@ -253,15 +280,34 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     
     // 确保days数组存在且不为空
     if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
-      throw new Error("Invalid itinerary: days array is missing or empty");
+      // 如果days数组缺失或为空，使用预生成的天数结构
+      const duration = parseInt(data.duration.toString()) || 1;
+      const fallbackDays = Array.from({ length: duration }, (_, i) => ({
+        day: i + 1,
+        theme: `第${i+1}天行程`,
+        activities: []
+      }));
+      
+      console.warn("AI未生成有效的days数组，使用默认结构替代");
+      result.days = fallbackDays;
     }
     
     // 确保每个day对象都有必要的字段
-    const validDays = result.days.filter((day: any) => 
-      day && typeof day === 'object' && 
-      day.day !== undefined && 
-      day.activities && Array.isArray(day.activities)
-    );
+    const validDays = result.days.map((day: any, index: number) => {
+      if (!day || typeof day !== 'object') {
+        return {
+          day: index + 1,
+          theme: `第${index + 1}天行程`,
+          activities: []
+        };
+      }
+      
+      return {
+        day: day.day !== undefined ? day.day : index + 1,
+        theme: day.theme || `第${index + 1}天行程`,
+        activities: Array.isArray(day.activities) ? day.activities : []
+      };
+    });
     
     if (validDays.length === 0) {
       throw new Error("Invalid itinerary: no valid days found");
