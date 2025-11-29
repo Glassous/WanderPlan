@@ -32,6 +32,8 @@ const App: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalLink, setShareModalLink] = useState<string>('');
+  const [copySuccess, setCopySuccess] = useState(false); // 新增：复制成功状态
+  
   const [navigationSource, setNavigationSource] = useState<'form' | 'history' | 'community' | 'import'>('form');
   const [activeFormTab, setActiveFormTab] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
 
@@ -66,6 +68,11 @@ const App: React.FC = () => {
           setIsEditing(false)
           setActiveTab('plan')
           setNavigationSource('community')
+          
+          // 在成功加载后，移除 URL 中的 share 参数
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('share');
+          window.history.replaceState(null, '', newUrl.toString());
         }
       } catch (e) {
         console.error(e)
@@ -200,6 +207,7 @@ const App: React.FC = () => {
     if (!itinerary?.shareId) return;
     const link = `${window.location.origin}${window.location.pathname}?share=${itinerary.shareId}`;
     setShareModalLink(link);
+    setCopySuccess(false); // 打开时重置复制状态
     setShareModalOpen(true);
   };
 
@@ -466,7 +474,24 @@ const App: React.FC = () => {
               />
               <div className="flex justify-end gap-3">
                 <button onClick={() => setShareModalOpen(false)} className="px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-stone-100 dark:bg-stone-800/50 text-stone-600 dark:text-stone-300">关闭</button>
-                <button onClick={async () => { await navigator.clipboard.writeText(shareModalLink) }} className="px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white shadow">复制</button>
+                <button 
+                  onClick={async () => { 
+                    try {
+                      await navigator.clipboard.writeText(shareModalLink);
+                      setCopySuccess(true);
+                      setTimeout(() => setCopySuccess(false), 3000);
+                    } catch (e) {
+                      console.error("Copy failed", e);
+                    }
+                  }} 
+                  className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-white shadow transition-all duration-300 min-w-[80px] ${
+                    copySuccess 
+                      ? 'bg-stone-500 dark:bg-stone-600' 
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
+                >
+                  {copySuccess ? '已复制' : '复制'}
+                </button>
               </div>
             </div>
           </div>

@@ -170,9 +170,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
               try {
                 setSharing(true)
                 const id = await shareItinerary(itinerary)
-                const params = new URLSearchParams(window.location.search)
-                params.set('share', id)
-                window.history.replaceState(null, '', `?${params.toString()}`)
+                // 移除此处修改 URL 的代码
                 onUpdateItinerary({ ...(isEditing && editedItinerary ? editedItinerary : itinerary), shareId: id, inCommunity: true })
               } catch (e) {
                 alert('分享失败，请稍后重试')
