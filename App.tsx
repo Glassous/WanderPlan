@@ -5,7 +5,7 @@ import MapDisplay from './components/MapDisplay';
 import ThemeBackground from './components/ThemeBackground';
 import { generateItinerary } from './services/qwenservice';
 import { fetchSharedItinerary } from './services/community'
-import { TripFormData, Itinerary } from './types';
+import { TripFormData, Itinerary, Activity } from './types';
 import { Map as MapIcon, Compass, Moon, Sun, Monitor, Feather, Github } from 'lucide-react';
 
 type Theme = 'system' | 'light' | 'dark';
@@ -19,16 +19,16 @@ const App: React.FC = () => {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // 移动端默认视图：'plan' (列表) 或 'map' (地图)
   const [activeTab, setActiveTab] = useState<'plan' | 'map'>('plan'); 
   
-  // UI State
   const [theme, setTheme] = useState<Theme>('system');
   const [activeMode, setActiveMode] = useState<'light' | 'dark'>('light'); 
   const [isFormVisible, setIsFormVisible] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
-  // Edit State
+  // 新增：聚焦活动状态
+  const [focusedActivity, setFocusedActivity] = useState<Activity | null>(null);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -36,7 +36,6 @@ const App: React.FC = () => {
   const [navigationSource, setNavigationSource] = useState<'form' | 'history' | 'community' | 'import'>('form');
   const [activeFormTab, setActiveFormTab] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
 
-  // Load History on Mount
   useEffect(() => {
     try {
       const savedHistory = localStorage.getItem('wanderplan_history');
@@ -64,6 +63,7 @@ const App: React.FC = () => {
           setItinerary({ ...data, shareId: share, inCommunity: true })
           setIsFormVisible(false)
           setSelectedDay(null)
+          setFocusedActivity(null)
           setIsEditing(false)
           setActiveTab('plan')
           setNavigationSource('community')
@@ -74,7 +74,6 @@ const App: React.FC = () => {
     })()
   }, [])
 
-  // Save History when it changes
   useEffect(() => {
     if (!historyInitialized) return;
     try {
@@ -84,7 +83,6 @@ const App: React.FC = () => {
     }
   }, [history, historyInitialized]);
 
-  // Theme Logic
   useEffect(() => {
     const root = document.documentElement;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -129,15 +127,13 @@ const App: React.FC = () => {
     setPartialItinerary(null);
     setItinerary(null);
     
-    // 立即隐藏表单，显示行程卡片
     setIsFormVisible(false);
     setSelectedDay(null);
+    setFocusedActivity(null);
     setIsEditing(false); 
-    // 强制切换到计划视图，防止移动端停留在Map导致白屏
     setActiveTab('plan');
     setNavigationSource('form');
     
-    // 根据duration预先生成天数结构
     const duration = parseInt(data.duration.toString()) || 1;
     const preGeneratedDays = Array.from({ length: duration }, (_, i) => ({
       day: i + 1,
@@ -227,6 +223,7 @@ const App: React.FC = () => {
     });
     setIsFormVisible(false);
     setSelectedDay(null);
+    setFocusedActivity(null);
     setIsEditing(false);
     setActiveTab('plan');
     setNavigationSource(imported.inCommunity ? 'community' : 'import');
@@ -236,6 +233,7 @@ const App: React.FC = () => {
     setItinerary(historyItem);
     setIsFormVisible(false);
     setSelectedDay(null);
+    setFocusedActivity(null);
     setIsEditing(false);
     setActiveTab('plan');
     setNavigationSource('history');
@@ -259,23 +257,30 @@ const App: React.FC = () => {
 
   const cancelDelete = () => setConfirmDeleteId(null);
 
-  // Map 只有在非表单模式、非编辑模式、且有行程数据时才完全可用
-  // 但在流式传输时，itinerary 可能是 null，但 partialItinerary 存在
-  // 因此我们主要依据 isFormVisible 来判断是否进入结果页面
+  // 新增：处理活动点击事件
+  const handleActivityClick = (activity: Activity) => {
+    setFocusedActivity(activity);
+    // 移动端体验优化：点击后自动切换到地图视图
+    if (window.innerWidth < 1024) {
+      setActiveTab('map');
+    }
+  };
+
+  // 修改：切换天数时清除聚焦状态
+  const handleSelectDay = (day: number | null) => {
+    setSelectedDay(day);
+    setFocusedActivity(null);
+  };
+
   const hasResultData = !!(itinerary || partialItinerary);
   const showMap = !isFormVisible && !isEditing && hasResultData;
-
-  // Visual Theme Determination
   const currentVisualTheme = isFormVisible || !hasResultData ? 'default' : 
     (itinerary?.visualTheme || partialItinerary?.visualTheme || 'default');
-
-  // 判断是否处于移动端地图模式
   const isMobileMapMode = !isFormVisible && activeTab === 'map';
 
   return (
     <ThemeBackground theme={currentVisualTheme} mode={activeMode}>
       <div className="flex flex-col font-sans min-h-screen">
-        {/* Header */}
         <header className={`bg-white/80 dark:bg-stone-900/60 backdrop-blur-md border border-stone-200 dark:border-stone-800/50 fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ease-in-out rounded-2xl shadow-xl w-[calc(100%-1.5rem)] ${showMap ? 'max-w-[1800px]' : 'max-w-4xl'}`}>
           <div className="w-full px-4 md:px-8 h-14 md:h-16 flex items-center justify-between">
             <div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => { setIsFormVisible(true); setItinerary(null); setIsEditing(false); }}>
@@ -306,39 +311,23 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Main Content */}
-        {/* 增加顶部 padding 以避开 fixed header */}
         <main 
           className={`
             flex-grow max-w-[1800px] mx-auto w-full
             mt-20 md:mt-24 
-            
-            /* 移动端/无地图模式：保留底部间距给 TabBar，允许页面滚动 */
             ${!showMap ? 'p-3 md:p-6 lg:p-8 pb-24 md:pb-8' : ''}
-
-            /* 桌面端地图模式：固定高度，禁止页面滚动，精确控制 Padding */
             ${showMap ? 'lg:h-[calc(100vh-6rem)] lg:overflow-hidden lg:p-6 lg:pb-6 p-3 pb-24' : ''}
           `}
         >
-          
           <div className={`
             grid grid-cols-1 gap-6 transition-all duration-500 ease-in-out
             ${showMap ? 'lg:grid-cols-12' : 'lg:grid-cols-1'} 
-            /* 关键修改：地图模式下，Grid 高度直接填满 Main 容器，不再使用 calc 计算 */
             ${showMap ? 'lg:h-full' : 'h-auto'}
           `}>
             
-            {/* Left Panel: Form or Itinerary List */}
             <div className={`
               flex flex-col gap-6 transition-all duration-500
-              /* 列表区域：在地图模式下，限制高度并允许内部滚动 */
               ${showMap ? 'lg:col-span-4 lg:h-full lg:overflow-hidden lg:rounded-3xl' : 'max-w-4xl mx-auto w-full'}
-              
-              /* 移动端显示逻辑修改：
-                 如果是表单模式，始终显示；
-                 如果是结果模式且在地图Tab，也显示（但通过props控制只显示Header）
-                 否则正常显示
-              */
               ${!isFormVisible && activeTab === 'map' ? 'flex lg:flex' : 'flex'}
             `}>
               
@@ -361,7 +350,6 @@ const App: React.FC = () => {
                     )}
                 </div>
               ) : (
-                /* 列表容器：确保在 Grid 内占满高度以便滚动 */
                 <div className={`flex-grow ${showMap ? 'lg:overflow-y-auto pr-1 scrollbar-hide' : ''} pb-4 scroll-smooth`}>
                   <ItineraryList 
                       itinerary={itinerary} 
@@ -371,7 +359,8 @@ const App: React.FC = () => {
                       selectedDay={selectedDay}
                       isEditing={isEditing}
                       setIsEditing={setIsEditing}
-                      onSelectDay={setSelectedDay}
+                      onSelectDay={handleSelectDay}
+                      onActivityClick={handleActivityClick} // 传递点击回调
                       onReplan={handleReplan}
                       onUpdateItinerary={handleUpdateItinerary}
                       onSelectHistory={handleSelectHistory}
@@ -384,24 +373,24 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* Right Panel: Map */}
-            {/* 桌面端：有数据时显示；移动端：有数据且Tab切到map时显示 */}
             {hasResultData && !isFormVisible && (
               <div className={`
                  lg:col-span-8 
-                 /* 地图容器：高度填满，圆角与阴影 */
                  h-[60vh] lg:h-full 
                  rounded-3xl overflow-hidden shadow-2xl shadow-stone-200/50 dark:shadow-black/40 border border-stone-200 dark:border-stone-800/50 relative bg-stone-100 dark:bg-stone-900/50
                  ${activeTab === 'map' ? 'block' : 'hidden lg:block'}
               `}>
-                <MapDisplay itinerary={itinerary} selectedDay={selectedDay} />
+                <MapDisplay 
+                  itinerary={itinerary} 
+                  selectedDay={selectedDay} 
+                  focusedActivity={focusedActivity} // 传递聚焦状态
+                />
               </div>
             )}
 
           </div>
         </main>
 
-        {/* Mobile Tab Bar (Only show if we have results and not in form mode) */}
         {!isFormVisible && hasResultData && (
           <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-stone-800/90 backdrop-blur-md border border-stone-200 dark:border-stone-700 p-1.5 rounded-full flex shadow-xl z-50 gap-1">
             <button 
@@ -430,7 +419,6 @@ const App: React.FC = () => {
         )}
       </div>
       
-      {/* Delete Confirmation Modal */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 backdrop-blur-sm bg-stone-950/30" onClick={cancelDelete}></div>
@@ -452,7 +440,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Share Modal */}
       {shareModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 backdrop-blur-sm bg-stone-950/30" onClick={() => setShareModalOpen(false)}></div>

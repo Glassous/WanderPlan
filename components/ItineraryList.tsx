@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Calendar, AlignLeft, Check, Trash2, Upload, Plus, Share2 } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, RotateCcw, X, History, Plus, Share2, Trash2 } from 'lucide-react';
 import { shareItinerary } from '../services/community'
 
 interface ItineraryListProps {
@@ -18,6 +18,7 @@ interface ItineraryListProps {
   onDeleteHistory: (id: string, e: React.MouseEvent) => void;
   onImportItinerary: (itinerary: Itinerary) => void;
   onOpenShareModal: () => void;
+  onActivityClick?: (activity: Activity) => void; // 新增属性
   mobileMapMode?: boolean;
 }
 
@@ -36,10 +37,10 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   onDeleteHistory,
   onImportItinerary,
   onOpenShareModal,
+  onActivityClick,
   mobileMapMode = false
 }) => {
   const [editedItinerary, setEditedItinerary] = useState<Itinerary | null>(null);
-  const importInputRef = useRef<HTMLInputElement>(null);
   const [sharing, setSharing] = useState(false)
 
   const handleExport = () => {
@@ -54,7 +55,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     URL.revokeObjectURL(a.href);
   };
 
-  // Initialize edit state when entering edit mode
   const startEditing = () => {
     if (itinerary) {
       setEditedItinerary(JSON.parse(JSON.stringify(itinerary)));
@@ -133,15 +133,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     setEditedItinerary(newItinerary);
   };
 
-  // Determine which itinerary to display
   const displayItinerary = isEditing && editedItinerary ? editedItinerary : 
                           streaming ? partialItinerary : itinerary;
 
-  // Show loading animation when streaming and no partial itinerary yet
   if (streaming && !displayItinerary) {
     return (
       <div className="space-y-6 animate-fade-in mt-4">
-        {/* Hero Card with Loading (No Shadow) */}
         <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
           <div className="relative z-10">
@@ -160,7 +157,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           </div>
         </div>
         
-        {/* Loading Progress (No Shadow) */}
         <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -193,7 +189,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   }
 
   if (!displayItinerary) {
-    // Show history if no active itinerary and not streaming
     if (history.length > 0) {
        return (
          <div className="space-y-6 animate-fade-in mt-4">
@@ -233,17 +228,14 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     return null; 
   }
 
-  // --- Styles for Edit Inputs (Minimalist/Underline) ---
   const editInputTitle = "w-full text-4xl font-serif font-bold text-stone-900 dark:text-white bg-transparent border-0 border-b-2 border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 focus:ring-0 px-0 py-2 placeholder-stone-300 transition-all";
   const editInputSummary = "w-full text-lg leading-relaxed text-stone-600 dark:text-stone-300 bg-stone-50 dark:bg-stone-800/50 rounded-xl border border-stone-200 dark:border-stone-700/60 p-4 focus:ring-2 focus:ring-emerald-500/20 outline-none resize-none transition-all";
   const editInputStandard = "w-full bg-transparent border-b border-stone-200 dark:border-stone-700/60 focus:border-emerald-500 text-stone-700 dark:text-stone-200 px-0 py-1 outline-none text-sm transition-colors";
   const editLabel = "text-[10px] uppercase font-bold text-stone-400 tracking-wider mb-1 block";
 
-  // --- Render Editing Mode (Large Card / Full Width) ---
   if (isEditing) {
     return (
       <div className="animate-fade-in space-y-8 pb-20 max-w-4xl mx-auto">
-        {/* Editing Header */}
         <div className="sticky top-0 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-sm py-4 border-b border-stone-200 dark:border-stone-800/50 flex justify-between items-center mb-6">
            <h2 className="text-xl font-serif text-stone-500 dark:text-stone-400 flex items-center gap-2">
              <Edit3 size={18} />
@@ -260,12 +252,11 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                onClick={saveEditing}
                className="flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white transition-all font-medium text-sm"
              >
-               <Check size={16} /> 保存变更
+               <Save size={16} /> 保存变更
              </button>
            </div>
         </div>
 
-        {/* Edit Title & Summary (No Shadow) */}
         <div className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl border border-stone-100 dark:border-stone-800/50">
            <label className={editLabel}>行程标题</label>
            <input 
@@ -284,7 +275,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
            </div>
         </div>
 
-        {/* Edit Days (No Shadow) */}
         {displayItinerary.days.map((day, dayIdx) => (
            <div key={day.day} className="bg-white dark:bg-stone-900/80 backdrop-blur-md p-8 rounded-3xl border border-stone-100 dark:border-stone-800/50">
               <div className="flex items-center gap-4 mb-8">
@@ -311,9 +301,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                  {day.activities.map((activity, actIdx) => (
                   <div key={actIdx} className="relative pl-6 border-l-2 border-stone-100 dark:border-stone-800/50 rounded-2xl bg-stone-50 dark:bg-stone-800/30 p-4">
                      <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-stone-200 dark:bg-stone-700 border-2 border-white dark:border-stone-900"></div>
-                     
                      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                        {/* Time & Location Column */}
                         <div className="md:col-span-3 space-y-4">
                            <div>
                               <label className={editLabel}>时间</label>
@@ -359,8 +347,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                               </div>
                            </div>
                         </div>
-
-                        {/* Content Column */}
                         <div className="md:col-span-9 space-y-4">
                            <div>
                              <label className={editLabel}>活动名称</label>
@@ -423,7 +409,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     );
   }
 
-  // --- Render Standard List View (Light Luxury Style) ---
   const ShareActions = () => (
     <>
       {!(displayItinerary.inCommunity) && (
@@ -461,13 +446,11 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   );
 
   const renderHeader = () => (
-    // FIX: Removed negative margins (-mx-3/-mx-4) to prevent horizontal scrolling
     <div className="sticky top-0 z-20 pb-4 pt-1 mb-4 transition-all duration-300">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-xl font-serif font-bold text-stone-800 dark:text-stone-100 truncate">行程概览</h2>
         
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* PC端直接显示分享按钮 */}
           <div className="hidden md:flex items-center gap-2">
              <ShareActions />
           </div>
@@ -496,14 +479,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         </div>
       </div>
       
-      {/* 移动端分享按钮换行显示 */}
       <div className="flex md:hidden items-center justify-end gap-2 mt-3 animate-fade-in">
         <ShareActions />
       </div>
     </div>
   );
 
-  // 如果是在移动端地图模式下，只渲染头部（用于显示操作按钮）
   if (mobileMapMode) {
     return (
       <div>
@@ -516,7 +497,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     <div className="space-y-6 animate-fade-in pb-10">
       {renderHeader()}
 
-      {/* Hero Card (No Shadow) */}
       <div className="relative bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl p-8 border border-stone-100 dark:border-stone-800/50 overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-700"></div>
         <div className="relative z-10">
@@ -539,7 +519,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         </div>
       </div>
 
-      {/* Filter Tabs (No Shadow for selected state) */}
       <div className="flex flex-wrap gap-2 overflow-x-auto pb-2 scrollbar-hide">
          <button 
            onClick={() => onSelectDay(null)}
@@ -552,7 +531,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
            All Days
          </button>
          {(displayItinerary.days || []).map((day, dayIdx) => {
-           // 跳过无效的day对象
            if (!day || day.day === undefined) return null;
            
            return (
@@ -571,16 +549,13 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
          })}
       </div>
 
-      {/* Days List (No Shadow) */}
       <div className="space-y-8">
         {(displayItinerary.days || []).map((day, dayIdx) => {
-          // 跳过无效的day对象
           if (!day || typeof day !== 'object' || day.day === undefined) return null;
           if (selectedDay !== null && day.day !== selectedDay) return null;
 
           return (
             <div key={day.day || dayIdx} className="bg-white dark:bg-stone-900/70 backdrop-blur-md rounded-3xl border border-stone-100 dark:border-stone-800/50 overflow-hidden">
-              {/* Day Header */}
               <div 
                 className="bg-stone-50/50 dark:bg-stone-800/30 px-8 py-5 border-b border-stone-100 dark:border-stone-800/50 flex items-center justify-between cursor-pointer hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
                 onClick={() => onSelectDay(selectedDay === (day.day || dayIdx + 1) ? null : (day.day || dayIdx + 1))}
@@ -596,19 +571,20 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                 </span>
               </div>
               
-              {/* Activities */}
               <div className="p-2">
                 {(day.activities || []).map((activity, actIdx) => {
                   if (!activity) return null;
                   return (
-                    <div key={actIdx} className="group flex items-stretch p-4 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-2xl transition-colors">
-                      {/* Time Column */}
+                    <div 
+                      key={actIdx} 
+                      onClick={() => !isEditing && onActivityClick?.(activity)}
+                      className={`group flex items-stretch p-4 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-2xl transition-colors ${!isEditing ? 'cursor-pointer active:scale-[0.99] transition-transform' : ''}`}
+                    >
                       <div className="w-20 pt-1 flex flex-col items-center border-r border-stone-100 dark:border-stone-800/50 mr-5 pr-5">
                          <span className="text-sm font-bold text-stone-800 dark:text-stone-200">{activity.time || "--:--"}</span>
                          <div className="h-full w-px bg-stone-100 dark:bg-stone-800/50 my-2 group-last:hidden"></div>
                       </div>
 
-                      {/* Content */}
                       <div className="flex-grow pb-2">
                         <h4 className="font-bold text-stone-800 dark:text-stone-100 mb-2 text-base group-hover:text-emerald-800 dark:group-hover:text-emerald-400 transition-colors">
                           {activity.activityName || "活动规划中"}
@@ -649,9 +625,6 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           </div>
         )}
       </div>
-
-      
-      
     </div>
   );
 };

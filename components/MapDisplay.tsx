@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Itinerary, Activity } from '../types';
-import { RefreshCcw, Layers, Check } from 'lucide-react'; // 引入图标
+import { RefreshCcw, Layers, Check } from 'lucide-react';
 
-// Fix for default Leaflet marker icons in React
+// 默认蓝色图标
 const customIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -15,7 +15,16 @@ const customIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
-// Vibrant but sophisticated colors for different days
+// 新增：高亮红色图标 (用于聚焦)
+const activeIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 const DAY_COLORS = [
   '#059669', // Emerald
   '#d97706', // Amber
@@ -29,7 +38,6 @@ const DAY_COLORS = [
   '#0f766e', // Teal
 ];
 
-// 瓦片源定义
 const TILE_SOURCES = {
   carto: {
     name: 'CartoDB',
@@ -63,9 +71,10 @@ type TileSourceKey = keyof typeof TILE_SOURCES;
 interface MapDisplayProps {
   itinerary: Itinerary | null;
   selectedDay: number | null;
+  focusedActivity?: Activity | null; // 新增属性
 }
 
-// 核心控制器：处理缩放、重置和初始化
+// 地图控制器：负责缩放和定位
 const MapController: React.FC<{ 
   targetActivities: Activity[] | null, 
   resetTrigger: number 
@@ -74,6 +83,14 @@ const MapController: React.FC<{
 
   const fitMapBounds = (acts: Activity[]) => {
     if (acts && acts.length > 0) {
+      // 逻辑升级：如果是单个点（聚焦模式），则放大到层级 16
+      if (acts.length === 1) {
+        const a = acts[0];
+        map.setView([a.coordinates.latitude, a.coordinates.longitude], 16, { animate: true });
+        return;
+      }
+      
+      // 多个点时，自动适配边界
       const bounds = L.latLngBounds(
         acts.map(a => [a.coordinates.latitude, a.coordinates.longitude])
       );
@@ -89,6 +106,7 @@ const MapController: React.FC<{
     }
   }, [targetActivities, resetTrigger]); 
 
+  // 处理窗口大小变化时的地图重绘
   useEffect(() => {
     map.invalidateSize();
     const timer = setTimeout(() => {
@@ -110,7 +128,6 @@ const MapController: React.FC<{
   return null;
 };
 
-// Component to render arrows along the path
 const DirectionArrows: React.FC<{ positions: [number, number][], color: string }> = ({ positions, color }) => {
   if (positions.length < 2) return null;
   const arrows = [];
@@ -133,20 +150,28 @@ const DirectionArrows: React.FC<{ positions: [number, number][], color: string }
   return <>{arrows}</>;
 };
 
-const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
+const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay, focusedActivity }) => {
   const daysToDisplay = itinerary?.days?.filter(d => selectedDay === null || d.day === selectedDay) || [];
   const allVisibleActivities = daysToDisplay.flatMap(d => d.activities);
 
   const [zoomTarget, setZoomTarget] = useState<Activity[] | null>(null);
   const [resetCount, setResetCount] = useState(0);
   
-  // 瓦片源状态
   const [currentSource, setCurrentSource] = useState<TileSourceKey>('carto');
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
 
+  // 当行程或选中天数变化时，重置视图目标
   useEffect(() => {
     setZoomTarget(allVisibleActivities);
   }, [itinerary, selectedDay]); 
+
+  // 当聚焦活动变化时，设置缩放目标为该单一活动
+  useEffect(() => {
+    if (focusedActivity) {
+      setZoomTarget([focusedActivity]);
+      setResetCount(c => c + 1);
+    }
+  }, [focusedActivity]);
 
   const handleResetView = () => {
     setZoomTarget(allVisibleActivities);
@@ -176,7 +201,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
       >
         <MapController targetActivities={zoomTarget} resetTrigger={resetCount} />
 
-        {/* 动态瓦片层 */}
         <TileLayer
           key={currentSource} 
           attribution={TILE_SOURCES[currentSource].attribution}
@@ -189,27 +213,36 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
            
            return (
              <React.Fragment key={`day-group-${day.day}`}>
-               {/* Markers */}
-               {day.activities.map((activity, idx) => (
-                  <Marker 
-                    key={`${day.day}-${idx}`}
-                    position={[activity.coordinates.latitude, activity.coordinates.longitude]}
-                    icon={customIcon}
-                  >
-                    <Popup className="font-sans">
-                      <div className="p-1 min-w-[150px]">
-                        <h3 className="font-serif font-bold text-stone-800 text-base mb-1">{activity.activityName}</h3>
-                        <p className="text-xs text-stone-600 mb-2">{activity.locationName}</p>
-                        <div className="flex items-center gap-2">
-                           <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
-                           <p className="text-xs font-mono font-medium text-stone-500">
-                              Day {day.day} • {activity.time}
-                           </p>
+               {day.activities.map((activity, idx) => {
+                  // 判断当前 Marker 是否为聚焦目标
+                  const isFocused = focusedActivity && 
+                                    activity.activityName === focusedActivity.activityName && 
+                                    activity.time === focusedActivity.time;
+                  
+                  return (
+                    <Marker 
+                      key={`${day.day}-${idx}`}
+                      position={[activity.coordinates.latitude, activity.coordinates.longitude]}
+                      // 颜色变换：聚焦时使用 activeIcon (红色)，否则使用 customIcon (蓝色)
+                      icon={isFocused ? activeIcon : customIcon}
+                      // 聚焦时提升层级，防止被遮挡
+                      zIndexOffset={isFocused ? 1000 : 0}
+                    >
+                      <Popup className="font-sans">
+                        <div className="p-1 min-w-[150px]">
+                          <h3 className="font-serif font-bold text-stone-800 text-base mb-1">{activity.activityName}</h3>
+                          <p className="text-xs text-stone-600 mb-2">{activity.locationName}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full" style={{ background: color }}></span>
+                            <p className="text-xs font-mono font-medium text-stone-500">
+                                Day {day.day} • {activity.time}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-               ))}
+                      </Popup>
+                    </Marker>
+                  );
+               })}
                {positions.length > 1 && (
                  <>
                     <Polyline positions={positions} color={color} weight={3} opacity={0.7} dashArray="5, 10" />
@@ -221,11 +254,9 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         })}
       </MapContainer>
       
-      {/* 右上角控制区：图层选择 + 重置 */}
       {itinerary && (
         <div className="absolute top-4 right-4 z-[400] flex items-start gap-2">
           
-          {/* 图层选择器 (点击切换模式) */}
           <div className="relative">
             <button
               onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
@@ -239,10 +270,8 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
               <Layers size={18} />
             </button>
             
-            {/* 下拉菜单 */}
             {isLayerMenuOpen && (
               <>
-                {/* 透明遮罩：点击外部自动关闭菜单 */}
                 <div 
                   className="fixed inset-0 cursor-default" 
                   style={{ zIndex: -1 }} 
@@ -264,7 +293,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
                       {currentSource === key && <Check size={14} />}
                     </button>
                   ))}
-                  {/* 提示信息 */}
                   {currentSource === 'amap' && (
                     <div className="px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-[10px] text-amber-600 dark:text-amber-400 border-t border-amber-100 dark:border-amber-900/30">
                       注意：高德地图可能存在坐标偏移
@@ -275,7 +303,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
             )}
           </div>
 
-          {/* 重置视图按钮 */}
           <button
             onClick={handleResetView}
             className="bg-white dark:bg-stone-800 p-2.5 rounded-full shadow-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-stone-600 dark:text-stone-300"
@@ -294,7 +321,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({ itinerary, selectedDay }) => {
         </div>
       )}
 
-      {/* Legend for Day Colors - 可交互 */}
       {itinerary && selectedDay === null && itinerary.days.length > 1 && (
          <div className="absolute bottom-6 left-4 z-[400] bg-white/90 dark:bg-stone-900/90 backdrop-blur p-3 rounded-xl shadow-lg border border-stone-200 dark:border-stone-800 max-h-48 overflow-y-auto w-32 custom-scrollbar">
             <h4 className="text-[10px] font-bold uppercase tracking-widest mb-2 text-stone-500 dark:text-stone-400 border-b border-stone-100 dark:border-stone-800 pb-1">点击聚焦</h4>
