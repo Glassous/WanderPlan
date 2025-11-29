@@ -7,6 +7,84 @@ const endpoint = `${baseUrl}/chat/completions`;
 // 流式生成行程的回调类型
 export type StreamCallback = (partialItinerary: Partial<Itinerary> | null, isDone: boolean) => void;
 
+/**
+ * 尝试解析不完整的 JSON 字符串
+ * 原理：维护一个括号栈，在解析失败时自动补全末尾缺失的 } ] "
+ */
+function tryParseJSON(jsonStr: string): any {
+  if (!jsonStr) return null;
+  
+  try {
+    // 1. 如果已经是完整的 JSON，直接解析
+    return JSON.parse(jsonStr);
+  } catch (e) {
+    // 2. 开始修复逻辑
+    let repaired = jsonStr;
+    
+    let inString = false;
+    let escape = false;
+    const stack: string[] = [];
+    
+    // 扫描字符串，记录未闭合的括号
+    for (let i = 0; i < repaired.length; i++) {
+      const char = repaired[i];
+      
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      
+      if (char === '\\') {
+        escape = true;
+        continue;
+      }
+      
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      
+      if (!inString) {
+        if (char === '{') {
+          stack.push('}');
+        } else if (char === '[') {
+          stack.push(']');
+        } else if (char === '}' || char === ']') {
+          // 遇到闭合括号，从栈中移除对应的开启记录
+          if (stack.length > 0 && stack[stack.length - 1] === char) {
+            stack.pop();
+          }
+        }
+      }
+    }
+    
+    // 3. 补全未闭合的字符串
+    if (inString) {
+      repaired += '"';
+    }
+    
+    // 4. 去除末尾可能导致错误的逗号 (例如: {"key": "value",)
+    repaired = repaired.replace(/,\s*$/, '');
+    
+    // 5. 处理尾随冒号 (例如: {"key":)，补全 null 以便解析
+    if (/:\s*$/.test(repaired)) {
+        repaired += 'null';
+    }
+
+    // 6. 按照栈的逆序补全所有缺失的括号
+    while (stack.length > 0) {
+      repaired += stack.pop();
+    }
+    
+    try {
+      return JSON.parse(repaired);
+    } catch (err) {
+      // 如果实在修不好（比如结构太混乱），返回 null 等待下一帧数据
+      return null;
+    }
+  }
+}
+
 export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback): Promise<Itinerary> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
@@ -36,7 +114,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
 
     【JSON结构示例】：
     {
-      "tripTitle": "前往${data.destination}的${data.duration}天行程",
+      "tripTitle": "",
       "summary": "这是一次精彩的${data.duration}天行程...",
       "visualTheme": "urban",
       "days": [
@@ -141,82 +219,25 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
               const delta = dataJson?.choices?.[0]?.delta?.content || "";
               fullContent += delta;
 
-              // 尝试解析部分JSON并调用回调
-              try {
-                const partialResult = JSON.parse(fullContent);
-                streamCallback({
+              // --- 关键修改：直接使用修复函数解析当前积累的所有内容 ---
+              const partialResult = tryParseJSON(fullContent);
+              
+              if (partialResult) {
+                // 如果能解析出数据，就发送给前端
+                // 补充一些前端需要的 ID 字段
+                const partialItinerary = {
                   ...partialResult,
-                  id: crypto.randomUUID(),
-                  createdAt: Date.now(),
-                } as Partial<Itinerary>, false);
-              } catch (parseError) {
-                // JSON不完整，尝试提取已有的字段
-                const partialItinerary: Partial<Itinerary> = {};
-                
-                // 提取tripTitle - 支持包含转义字符的字符串
-                const tripTitleMatch = fullContent.match(/"tripTitle"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-                if (tripTitleMatch) {
-                  partialItinerary.tripTitle = tripTitleMatch[1].replace(/\\"/g, '"');
-                }
-                
-                // 提取summary - 支持包含转义字符的字符串
-                const summaryMatch = fullContent.match(/"summary"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-                if (summaryMatch) {
-                  partialItinerary.summary = summaryMatch[1].replace(/\\"/g, '"');
-                }
-                
-                // 提取visualTheme - 支持包含转义字符的字符串
-                const visualThemeMatch = fullContent.match(/"visualTheme"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-                if (visualThemeMatch) {
-                  partialItinerary.visualTheme = visualThemeMatch[1] as any;
-                }
-                
-                // 提取days数组的内容
-                const daysMatch = fullContent.match(/"days"\s*:\s*\[([\s\S]*?)(?=\]|$)/);
-                if (daysMatch) {
-                  try {
-                    const daysContent = daysMatch[1];
-                    let daysArray = [];
-                    
-                    // 匹配所有完整的day对象，支持更复杂的结构
-                    const dayRegex = /\{\s*"day"\s*:\s*\d+\s*(?:,\s*"theme"\s*:\s*"[^"]*")?\s*(?:,\s*"activities"\s*:\s*\[.*?\])?\s*\}(?=\s*,|\s*$|\s*\])/g;
-                    let dayMatch;
-                    
-                    while ((dayMatch = dayRegex.exec(daysContent)) !== null) {
-                      try {
-                        const dayObj = JSON.parse(dayMatch[0]);
-                        // 确保day对象有必要的字段
-                        if (dayObj.day && dayObj.activities) {
-                          daysArray.push(dayObj);
-                        } else if (dayObj.day) {
-                          // 确保activities数组存在
-                          daysArray.push({
-                            ...dayObj,
-                            activities: []
-                          });
-                        }
-                      } catch (e) {
-                        // 忽略无法解析的day对象
-                      }
-                    }
-                    
-                    if (daysArray.length > 0) {
-                      partialItinerary.days = daysArray;
-                    }
-                  } catch (e) {
-                    // 忽略days解析错误
-                  }
-                }
-                
-                // 确保至少返回一些有用的数据
-                if (Object.keys(partialItinerary).length > 0) {
-                  streamCallback({
-                    ...partialItinerary,
-                    id: crypto.randomUUID(),
-                    createdAt: Date.now(),
-                  }, false);
-                }
+                  // 只有当 partialResult 中没有这些字段时才使用默认值，防止覆盖
+                  id: partialResult.id || crypto.randomUUID(),
+                  createdAt: partialResult.createdAt || Date.now(),
+                  // 确保 days 始终是数组，防止 null 导致前端渲染报错
+                  days: Array.isArray(partialResult.days) ? partialResult.days : []
+                };
+
+                streamCallback(partialItinerary as Partial<Itinerary>, false);
               }
+              // -----------------------------------------------------
+
             } catch (e) {
               console.error("Error parsing stream chunk:", e);
             }
@@ -228,7 +249,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     }
 
     // 解析完整的JSON
-    const result = JSON.parse(fullContent);
+    const result = tryParseJSON(fullContent) || JSON.parse(fullContent);
     
     // 确保days数组存在且不为空
     if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
@@ -236,7 +257,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     }
     
     // 确保每个day对象都有必要的字段
-    const validDays = result.days.filter(day => 
+    const validDays = result.days.filter((day: any) => 
       day && typeof day === 'object' && 
       day.day !== undefined && 
       day.activities && Array.isArray(day.activities)
