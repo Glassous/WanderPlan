@@ -162,7 +162,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
         </button>
         
         {/* Share buttons - now visible on all screen sizes */}
-        {!(displayItinerary?.inCommunity) && (
+        {/* 增加 !streaming 判断，流式生成过程中不显示分享按钮 */}
+        {!(displayItinerary?.inCommunity) && !streaming && (
           <button
             onClick={async () => {
               if (!itinerary || sharing) return
@@ -186,7 +187,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
             <Share2 size={18} className={sharing ? "animate-pulse" : ""} />
           </button>
         )}
-        {displayItinerary?.inCommunity && displayItinerary.shareId && (
+        {/* 增加 !streaming 判断，流式生成过程中不显示分享链接按钮 */}
+        {displayItinerary?.inCommunity && displayItinerary.shareId && !streaming && (
           <button
             onClick={onOpenShareModal}
             className="p-2 rounded-full text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/50"
@@ -198,14 +200,16 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
 
         <button 
           onClick={startEditing}
-          className="p-2 rounded-full text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/50"
+          disabled={streaming}
+          className={`p-2 rounded-full text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/50 ${streaming ? 'opacity-50 cursor-not-allowed' : ''}`}
           title="编辑"
         >
           <Edit3 size={18} />
         </button>
         <button
           onClick={handleExport}
-          className="p-2 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700"
+          disabled={streaming}
+          className={`p-2 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700 ${streaming ? 'opacity-50 cursor-not-allowed' : ''}`}
           title="导出"
         >
           <Save size={18} />
@@ -285,7 +289,8 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
   if (isEditing) {
     return (
       <div className="animate-fade-in space-y-8 pb-20 max-w-4xl mx-auto h-full overflow-y-auto custom-scrollbar px-1">
-        <div className="sticky top-0 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-sm py-4 border-b border-stone-200 dark:border-stone-800/50 flex justify-between items-center mb-6">
+        {/* 修复：将 px-6 改为 px-8 以与下方卡片的 p-8 对齐，解决文字偏左问题；将 rounded-2xl 改为 rounded-3xl 以保持一致的圆角风格 */}
+        <div className="sticky top-0 z-20 bg-stone-50/95 dark:bg-stone-950/95 backdrop-blur-sm py-4 px-8 rounded-3xl border-b border-stone-200 dark:border-stone-800/50 flex justify-between items-center mb-6 shadow-sm">
            <h2 className="text-xl font-serif text-stone-500 dark:text-stone-400 flex items-center gap-2">
              <Edit3 size={18} />
              编辑模式
@@ -299,7 +304,7 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
              </button>
              <button 
                onClick={saveEditing}
-               className="flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white transition-all font-medium text-sm"
+               className="flex items-center gap-2 px-6 py-2 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white transition-all font-medium text-sm shadow-lg hover:shadow-emerald-900/20"
              >
                <Save size={16} /> 保存变更
              </button>
