@@ -476,11 +476,17 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                   <div className="p-2">
                     {(day.activities || []).map((activity, actIdx) => {
                       if (!activity) return null;
+                      // 新增：判断是否可点击
+                      const isClickable = !isEditing && !streaming;
                       return (
                         <div 
                           key={actIdx} 
-                          onClick={() => !isEditing && onActivityClick?.(activity)}
-                          className={`group flex items-stretch p-3 md:p-4 hover:bg-stone-50 dark:hover:bg-stone-800/50 rounded-2xl transition-colors ${!isEditing ? 'cursor-pointer active:scale-[0.99] transition-transform' : ''}`}
+                          onClick={() => isClickable && onActivityClick?.(activity)}
+                          className={`group flex items-stretch p-3 md:p-4 rounded-2xl transition-colors ${
+                            isClickable 
+                              ? 'hover:bg-stone-50 dark:hover:bg-stone-800/50 cursor-pointer active:scale-[0.99] transition-transform' 
+                              : 'opacity-80 cursor-default'
+                          }`}
                         >
                           <div className="w-16 md:w-20 pt-1 flex flex-col items-center border-r border-stone-100 dark:border-stone-800/50 mr-4 md:mr-5 pr-4 md:pr-5">
                              <span className="text-xs md:text-sm font-bold text-stone-800 dark:text-stone-200">{activity.time || "--:--"}</span>
@@ -499,9 +505,12 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                               <span 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleLocationClick(activity.locationName || "");
+                                  // 同样判断是否可点击
+                                  if (isClickable) {
+                                    handleLocationClick(activity.locationName || "");
+                                  }
                                 }}
-                                className="hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline cursor-pointer transition-colors truncate"
+                                className={`${isClickable ? 'hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline cursor-pointer' : 'cursor-default'} transition-colors truncate`}
                               >
                                 {activity.locationName || "位置规划中"}
                               </span>
