@@ -85,7 +85,10 @@ function tryParseJSON(jsonStr: string): any {
   }
 }
 
-export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback): Promise<Itinerary> => {
+// 最大重试次数
+const MAX_RETRIES = 3;
+
+export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback, retryCount: number = 0): Promise<Itinerary> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
   }
@@ -181,6 +184,28 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
       }
 
       const result = JSON.parse(content);
+      
+      // 确保days数组存在且不为空
+      if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
+        // 检查是否需要重试
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
+          // 递归调用，重试生成行程
+          return generateItinerary(data, streamCallback, retryCount + 1);
+        } else {
+          // 如果达到最大重试次数，使用预生成的天数结构
+          const duration = parseInt(data.duration.toString()) || 1;
+          const fallbackDays = Array.from({ length: duration }, (_, i) => ({
+            day: i + 1,
+            theme: `第${i+1}天行程`,
+            activities: []
+          }));
+          
+          console.warn(`AI未生成有效的days数组，已达到最大重试次数(${MAX_RETRIES})，使用默认结构替代`);
+          result.days = fallbackDays;
+        }
+      }
+      
       return {
         ...result,
         id: crypto.randomUUID(),
@@ -280,16 +305,23 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     
     // 确保days数组存在且不为空
     if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
-      // 如果days数组缺失或为空，使用预生成的天数结构
-      const duration = parseInt(data.duration.toString()) || 1;
-      const fallbackDays = Array.from({ length: duration }, (_, i) => ({
-        day: i + 1,
-        theme: `第${i+1}天行程`,
-        activities: []
-      }));
-      
-      console.warn("AI未生成有效的days数组，使用默认结构替代");
-      result.days = fallbackDays;
+      // 检查是否需要重试
+      if (retryCount < MAX_RETRIES) {
+        console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
+        // 递归调用，重试生成行程
+        return generateItinerary(data, streamCallback, retryCount + 1);
+      } else {
+        // 如果达到最大重试次数，使用预生成的天数结构
+        const duration = parseInt(data.duration.toString()) || 1;
+        const fallbackDays = Array.from({ length: duration }, (_, i) => ({
+          day: i + 1,
+          theme: `第${i+1}天行程`,
+          activities: []
+        }));
+        
+        console.warn(`AI未生成有效的days数组，已达到最大重试次数(${MAX_RETRIES})，使用默认结构替代`);
+        result.days = fallbackDays;
+      }
     }
     
     // 确保每个day对象都有必要的字段
