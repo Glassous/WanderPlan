@@ -36,6 +36,21 @@ const App: React.FC = () => {
   
   const [navigationSource, setNavigationSource] = useState<'form' | 'history' | 'community' | 'import'>('form');
   const [activeFormTab, setActiveFormTab] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
+  
+  // 模型选择相关状态
+  const [model, setModel] = useState<string>('qwen-plus');
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
+  const models = [
+    { value: 'qwen-flash', label: 'Qwen Flash' },
+    { value: 'qwen-turbo', label: 'Qwen Turbo' },
+    { value: 'qwen-plus', label: 'Qwen Plus' },
+    { value: 'qwen-max', label: 'Qwen Max' },
+    { value: 'qwen3-max', label: 'Qwen3 Max' },
+    { value: 'qwen3-235b-a22b-instruct-2507', label: 'Qwen3 235B' },
+    { value: 'deepseek-v3.2-exp', label: 'DeepSeek V3.2 Exp' },
+    { value: 'glm-4.6', label: 'GLM-4.6' },
+    { value: 'Moonshot-Kimi-K2-Instruct', label: 'Kimi K2' }
+  ];
 
   useEffect(() => {
     try {
@@ -107,8 +122,31 @@ const App: React.FC = () => {
 
     applyTheme();
     mediaQuery.addEventListener('change', applyTheme);
-    return () => mediaQuery.removeEventListener('change', applyTheme);
+
+    return () => {
+      mediaQuery.removeEventListener('change', applyTheme);
+    };
   }, [theme]);
+
+  // 点击外部关闭下拉菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const modelDropdown = document.querySelector('.model-dropdown-trigger');
+      const dropdownMenu = document.querySelector('.model-dropdown-menu');
+      
+      if (modelDropdown && dropdownMenu && !modelDropdown.contains(event.target as Node) && !dropdownMenu.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false);
+      }
+    };
+
+    if (isModelDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isModelDropdownOpen]);
 
   const toggleTheme = () => {
     setTheme(current => {
@@ -173,7 +211,7 @@ const App: React.FC = () => {
           setHistory(prev => [updatedPartialItinerary as Itinerary, ...prev]);
           setStreaming(false);
         }
-      });
+      }, 0, model);
     } catch (err) {
       setError("生成行程失败，请重试。");
       setStreaming(false);
@@ -305,7 +343,39 @@ const App: React.FC = () => {
                   <ArrowLeft size={18} />
                 </button>
               )}
-              <div className="text-xs font-serif italic text-stone-500 dark:text-stone-400 hidden sm:block">Curated by Qwen AI</div>
+              {/* 模型切换下拉菜单 */}
+              <div className="relative hidden sm:block">
+                {/* 触发按钮 */}
+                <button
+                  onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                  className="model-dropdown-trigger flex items-center gap-1 bg-transparent text-sm border border-transparent hover:border-stone-200 dark:hover:border-stone-700 rounded-md px-3 py-1.5 text-stone-600 dark:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-stone-700 cursor-pointer transition-colors"
+                >
+                  <span>{models.find(m => m.value === model)?.label || model}</span>
+                  <svg className={`w-4 h-4 transition-transform duration-200 ${isModelDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {/* 下拉面板 */}
+                {isModelDropdownOpen && (
+                  <div className="model-dropdown-menu absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 overflow-hidden z-50">
+                    {models.map((m) => (
+                      <button
+                        key={m.value}
+                        onClick={() => {
+                          setModel(m.value);
+                          setIsModelDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${model === m.value 
+                          ? 'bg-stone-100 dark:bg-stone-700 text-stone-900 dark:text-stone-100' 
+                          : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'}`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex items-center gap-1.5">
                 <button 
                   onClick={() => window.open('https://github.com/Glassous/WanderPlan', '_blank', 'noopener')}

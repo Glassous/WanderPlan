@@ -88,7 +88,7 @@ function tryParseJSON(jsonStr: string): any {
 // 最大重试次数
 const MAX_RETRIES = 3;
 
-export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback, retryCount: number = 0): Promise<Itinerary> => {
+export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback, retryCount: number = 0, model: string = "qwen-plus"): Promise<Itinerary> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
   }
@@ -159,7 +159,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "qwen-plus",
+        model: model,
         messages: [
           { role: "system", content: "你是旅行规划助手。仅返回有效JSON。" },
           { role: "user", content: prompt },
@@ -188,11 +188,11 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
       // 确保days数组存在且不为空
       if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
         // 检查是否需要重试
-        if (retryCount < MAX_RETRIES) {
-          console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
-          // 递归调用，重试生成行程
-          return generateItinerary(data, streamCallback, retryCount + 1);
-        } else {
+      if (retryCount < MAX_RETRIES) {
+        console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
+        // 递归调用，重试生成行程
+        return generateItinerary(data, streamCallback, retryCount + 1, model);
+      } else {
           // 如果达到最大重试次数，使用预生成的天数结构
           const duration = parseInt(data.duration.toString()) || 1;
           const fallbackDays = Array.from({ length: duration }, (_, i) => ({
@@ -309,7 +309,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
       if (retryCount < MAX_RETRIES) {
         console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
         // 递归调用，重试生成行程
-        return generateItinerary(data, streamCallback, retryCount + 1);
+        return generateItinerary(data, streamCallback, retryCount + 1, model);
       } else {
         // 如果达到最大重试次数，使用预生成的天数结构
         const duration = parseInt(data.duration.toString()) || 1;
