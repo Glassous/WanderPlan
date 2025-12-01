@@ -2,31 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw } from 'lucide-react';
-
-// --- 类型定义 ---
-interface Coordinate {
-  lat: number;
-  lng: number;
-}
-
-interface DestinationItem {
-  name: string;
-  enName: string; // 新增英文名字段用于图片
-  fullName?: string;
-  coords: Coordinate;
-}
-
-interface CountryNode {
-  name: string;
-  enName: string;
-  cities: DestinationItem[];
-}
-
-interface ContinentNode {
-  name: string;
-  enName: string;
-  countries: CountryNode[];
-}
+import { DOMESTIC_CITIES, DestinationItem, Coordinate } from '../data/domesticCities';
+import { INTERNATIONAL_DATA, CountryNode, ContinentNode } from '../data/internationalCities';
 
 // --- 图片URL生成器 ---
 // 使用 oss 处理参数进行 1:1 居中裁剪缩略图，w_400,h_400 既保证清晰度又节省流量
@@ -62,197 +39,6 @@ const TILE_SOURCES = {
   }
 };
 type TileSourceKey = keyof typeof TILE_SOURCES;
-
-const DOMESTIC_CITIES: DestinationItem[] = [
-  // 热门一线
-  { name: '北京', enName: 'beijing', coords: { lat: 39.9042, lng: 116.4074 } },
-  { name: '上海', enName: 'shanghai', coords: { lat: 31.2304, lng: 121.4737 } },
-  { name: '广州', enName: 'guangzhou', coords: { lat: 23.1291, lng: 113.2644 } },
-  { name: '深圳', enName: 'shenzhen', coords: { lat: 22.5431, lng: 114.0579 } },
-  // 西南风情
-  { name: '成都', enName: 'chengdu', coords: { lat: 30.5728, lng: 104.0668 } },
-  { name: '重庆', enName: 'chongqing', coords: { lat: 29.5630, lng: 106.5516 } },
-  { name: '大理', enName: 'dali', coords: { lat: 25.6065, lng: 100.2676 } },
-  { name: '丽江', enName: 'lijiang', coords: { lat: 26.8550, lng: 100.2257 } },
-  { name: '拉萨', enName: 'lhasa', coords: { lat: 29.6525, lng: 91.1721 } },
-  // 历史人文
-  { name: '西安', enName: 'xian', coords: { lat: 34.3416, lng: 108.9398 } },
-  { name: '南京', enName: 'nanjing', coords: { lat: 32.0603, lng: 118.7969 } },
-  { name: '苏州', enName: 'suzhou', coords: { lat: 31.2989, lng: 120.5853 } },
-  { name: '杭州', enName: 'hangzhou', coords: { lat: 30.2741, lng: 120.1551 } },
-  { name: '敦煌', enName: 'dunhuang', coords: { lat: 40.1421, lng: 94.6620 } },
-  // 海滨度假
-  { name: '三亚', enName: 'sanya', coords: { lat: 18.2528, lng: 109.5120 } },
-  { name: '厦门', enName: 'xiamen', coords: { lat: 24.4798, lng: 118.0894 } },
-  { name: '青岛', enName: 'qingdao', coords: { lat: 36.0671, lng: 120.3826 } },
-  // 北国风光
-  { name: '哈尔滨', enName: 'harbin', coords: { lat: 45.8038, lng: 126.5349 } },
-  // 自然山水
-  { name: '桂林', enName: 'guilin', coords: { lat: 25.2345, lng: 110.1800 } },
-  { name: '张家界', enName: 'zhangjiajie', coords: { lat: 29.1170, lng: 110.4789 } },
-  { name: '长沙', enName: 'changsha', coords: { lat: 28.2282, lng: 112.9388 } },
-  { name: '武汉', enName: 'wuhan', coords: { lat: 30.5928, lng: 114.3055 } },
-];
-
-const INTERNATIONAL_DATA: ContinentNode[] = [
-  {
-    name: '亚洲',
-    enName: 'asia',
-    countries: [
-      {
-        name: '日本',
-        enName: 'japan',
-        cities: [
-          { name: '东京', enName: 'tokyo', fullName: '东京, 日本', coords: { lat: 35.6762, lng: 139.6503 } },
-          { name: '大阪', enName: 'osaka', fullName: '大阪, 日本', coords: { lat: 34.6937, lng: 135.5023 } },
-          { name: '京都', enName: 'kyoto', fullName: '京都, 日本', coords: { lat: 35.0116, lng: 135.7681 } },
-          { name: '北海道', enName: 'hokkaido', fullName: '北海道, 日本', coords: { lat: 43.2203, lng: 142.8635 } },
-        ]
-      },
-      {
-        name: '韩国',
-        enName: 'korea',
-        cities: [
-          { name: '首尔', enName: 'seoul', fullName: '首尔, 韩国', coords: { lat: 37.5665, lng: 126.9780 } },
-          { name: '釜山', enName: 'busan', fullName: '釜山, 韩国', coords: { lat: 35.1796, lng: 129.0756 } },
-        ]
-      },
-      {
-        name: '泰国',
-        enName: 'thailand',
-        cities: [
-          { name: '曼谷', enName: 'bangkok', fullName: '曼谷, 泰国', coords: { lat: 13.7563, lng: 100.5018 } },
-          { name: '清迈', enName: 'chiangmai', fullName: '清迈, 泰国', coords: { lat: 18.7883, lng: 98.9853 } },
-          { name: '普吉岛', enName: 'phuket', fullName: '普吉岛, 泰国', coords: { lat: 7.8804, lng: 98.3923 } },
-        ]
-      },
-      {
-        name: '新加坡',
-        enName: 'singapore',
-        cities: [
-          { name: '新加坡', enName: 'singapore', fullName: '新加坡', coords: { lat: 1.3521, lng: 103.8198 } },
-        ]
-      },
-      {
-        name: '印度尼西亚',
-        enName: 'indonesia',
-        cities: [
-          { name: '巴厘岛', enName: 'bali', fullName: '巴厘岛, 印尼', coords: { lat: -8.4095, lng: 115.1889 } },
-          { name: '雅加达', enName: 'jakarta', fullName: '雅加达, 印尼', coords: { lat: -6.2088, lng: 106.8456 } },
-        ]
-      }
-    ]
-  },
-  {
-    name: '欧洲',
-    enName: 'europe',
-    countries: [
-      {
-        name: '法国',
-        enName: 'france',
-        cities: [
-          { name: '巴黎', enName: 'paris', fullName: '巴黎, 法国', coords: { lat: 48.8566, lng: 2.3522 } },
-          { name: '尼斯', enName: 'nice', fullName: '尼斯, 法国', coords: { lat: 43.7102, lng: 7.2620 } },
-        ]
-      },
-      {
-        name: '英国',
-        enName: 'uk',
-        cities: [
-          { name: '伦敦', enName: 'london', fullName: '伦敦, 英国', coords: { lat: 51.5074, lng: -0.1278 } },
-          { name: '爱丁堡', enName: 'edinburgh', fullName: '爱丁堡, 英国', coords: { lat: 55.9533, lng: -3.1883 } },
-        ]
-      },
-      {
-        name: '意大利',
-        enName: 'italy',
-        cities: [
-          { name: '罗马', enName: 'rome', fullName: '罗马, 意大利', coords: { lat: 41.9028, lng: 12.4964 } },
-          { name: '威尼斯', enName: 'venice', fullName: '威尼斯, 意大利', coords: { lat: 45.4408, lng: 12.3155 } },
-          { name: '佛罗伦萨', enName: 'florence', fullName: '佛罗伦萨, 意大利', coords: { lat: 43.7696, lng: 11.2558 } },
-          { name: '米兰', enName: 'milan', fullName: '米兰, 意大利', coords: { lat: 45.4642, lng: 9.1900 } },
-        ]
-      },
-      {
-        name: '西班牙',
-        enName: 'spain',
-        cities: [
-          { name: '巴塞罗那', enName: 'barcelona', fullName: '巴塞罗那, 西班牙', coords: { lat: 41.3851, lng: 2.1734 } },
-          { name: '马德里', enName: 'madrid', fullName: '马德里, 西班牙', coords: { lat: 40.4168, lng: -3.7038 } },
-        ]
-      },
-      {
-        name: '德国',
-        enName: 'germany',
-        cities: [
-          { name: '柏林', enName: 'berlin', fullName: '柏林, 德国', coords: { lat: 52.5200, lng: 13.4050 } },
-          { name: '慕尼黑', enName: 'munich', fullName: '慕尼黑, 德国', coords: { lat: 48.1351, lng: 11.5820 } },
-        ]
-      },
-      {
-        name: '瑞士',
-        enName: 'switzerland',
-        cities: [
-          { name: '苏黎世', enName: 'zurich', fullName: '苏黎世, 瑞士', coords: { lat: 47.3769, lng: 8.5417 } },
-          { name: '日内瓦', enName: 'geneva', fullName: '日内瓦, 瑞士', coords: { lat: 46.2044, lng: 6.1432 } },
-        ]
-      },
-      {
-        name: '荷兰',
-        enName: 'netherlands',
-        cities: [
-          { name: '阿姆斯特丹', enName: 'amsterdam', fullName: '阿姆斯特丹, 荷兰', coords: { lat: 52.3676, lng: 4.9041 } },
-        ]
-      }
-    ]
-  },
-  {
-    name: '北美洲',
-    enName: 'north_america',
-    countries: [
-      {
-        name: '美国',
-        enName: 'usa',
-        cities: [
-          { name: '纽约', enName: 'newyork', fullName: '纽约, 美国', coords: { lat: 40.7128, lng: -74.0060 } },
-          { name: '洛杉矶', enName: 'losangeles', fullName: '洛杉矶, 美国', coords: { lat: 34.0522, lng: -118.2437 } },
-          { name: '旧金山', enName: 'sanfrancisco', fullName: '旧金山, 美国', coords: { lat: 37.7749, lng: -122.4194 } },
-          { name: '拉斯维加斯', enName: 'lasvegas', fullName: '拉斯维加斯, 美国', coords: { lat: 36.1699, lng: -115.1398 } },
-        ]
-      },
-      {
-        name: '加拿大',
-        enName: 'canada',
-        cities: [
-          { name: '多伦多', enName: 'toronto', fullName: '多伦多, 加拿大', coords: { lat: 43.6510, lng: -79.3470 } },
-          { name: '温哥华', enName: 'vancouver', fullName: '温哥华, 加拿大', coords: { lat: 49.2827, lng: -123.1207 } },
-        ]
-      }
-    ]
-  },
-  {
-    name: '大洋洲',
-    enName: 'oceania',
-    countries: [
-      {
-        name: '澳大利亚',
-        enName: 'australia',
-        cities: [
-          { name: '悉尼', enName: 'sydney', fullName: '悉尼, 澳大利亚', coords: { lat: -33.8688, lng: 151.2093 } },
-          { name: '墨尔本', enName: 'melbourne', fullName: '墨尔本, 澳大利亚', coords: { lat: -37.8136, lng: 144.9631 } },
-        ]
-      },
-      {
-        name: '新西兰',
-        enName: 'newzealand',
-        cities: [
-          { name: '奥克兰', enName: 'auckland', fullName: '奥克兰, 新西兰', coords: { lat: -36.8485, lng: 174.7633 } },
-          { name: '皇后镇', enName: 'queenstown', fullName: '皇后镇, 新西兰', coords: { lat: -45.0312, lng: 168.6626 } },
-        ]
-      }
-    ]
-  }
-];
 
 // --- 地图子组件：自动缩放 & 视图控制 ---
 const MapController: React.FC<{ markers: Coordinate[], resetTrigger: number }> = ({ markers, resetTrigger }) => {
@@ -318,24 +104,25 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
 
   // 渲染国内列表
   const renderDomestic = () => (
-    <div className="grid grid-cols-2 md:grid-cols-2 gap-3 p-1">
+    <div className="p-1 space-y-2">
       {DOMESTIC_CITIES.map(city => (
         <div 
           key={city.name}
           onClick={() => toggleSelection(city)}
-          className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer group border-2 transition-all ${
-            selectedItems.find(i => i.name === city.name) ? 'border-emerald-600' : 'border-transparent'
+          className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            selectedItems.find(i => i.name === city.name) 
+              ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' 
+              : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
           }`}
         >
-          <img src={getImgUrl(city.enName)} alt={city.name} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-3">
-             <span className="text-white font-serif font-bold text-sm md:text-base">{city.name}</span>
+          <div className="flex items-center justify-between">
+            <span className="font-serif font-bold text-base text-stone-800 dark:text-stone-200">{city.name}</span>
+            {selectedItems.find(i => i.name === city.name) && (
+              <div className="bg-emerald-600 text-white rounded-full p-1 shadow-md animate-in zoom-in">
+                <Check size={12} />
+              </div>
+            )}
           </div>
-          {selectedItems.find(i => i.name === city.name) && (
-            <div className="absolute top-2 right-2 bg-emerald-600 text-white rounded-full p-1 shadow-md animate-in zoom-in">
-              <Check size={12} />
-            </div>
-          )}
         </div>
       ))}
     </div>
@@ -346,16 +133,16 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
     // Level 1: 洲
     if (navStack.length === 0) {
       return (
-        <div className="grid grid-cols-2 gap-3 p-1">
+        <div className="p-1 space-y-2">
           {INTERNATIONAL_DATA.map(continent => (
             <div 
               key={continent.name}
               onClick={() => setNavStack([continent])}
-              className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+              className="relative p-4 rounded-xl border-2 cursor-pointer transition-all border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600"
             >
-              <img src={getImgUrl(continent.enName)} alt={continent.name} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" loading="lazy" />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                 <span className="text-white font-serif font-bold text-lg">{continent.name}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-serif font-bold text-lg text-stone-800 dark:text-stone-200">{continent.name}</span>
+                <ChevronRight size={16} className="text-stone-400" />
               </div>
             </div>
           ))}
@@ -367,16 +154,16 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
     if (navStack.length === 1) {
       const continent = navStack[0] as ContinentNode;
       return (
-        <div className="grid grid-cols-2 gap-3 p-1">
+        <div className="p-1 space-y-2">
           {continent.countries.map(country => (
             <div 
               key={country.name}
               onClick={() => setNavStack([...navStack, country])}
-              className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
+              className="relative p-4 rounded-xl border-2 cursor-pointer transition-all border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600"
             >
-              <img src={getImgUrl(country.enName)} alt={country.name} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" loading="lazy" />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                 <span className="text-white font-serif font-bold text-lg">{country.name}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-serif font-bold text-lg text-stone-800 dark:text-stone-200">{country.name}</span>
+                <ChevronRight size={16} className="text-stone-400" />
               </div>
             </div>
           ))}
@@ -388,25 +175,28 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
     if (navStack.length === 2) {
       const country = navStack[1] as CountryNode;
       return (
-        <div className="grid grid-cols-2 gap-3 p-1">
+        <div className="p-1 space-y-2">
           {country.cities.map(city => (
             <div 
               key={city.name}
               onClick={() => toggleSelection(city)}
-              className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer group border-2 transition-all ${
-                selectedItems.find(i => i.name === city.name) ? 'border-emerald-600' : 'border-transparent'
+              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                selectedItems.find(i => i.name === city.name) 
+                  ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' 
+                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
               }`}
             >
-              <img src={getImgUrl(city.enName)} alt={city.name} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" loading="lazy" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-3">
-                 <span className="text-white font-serif font-bold text-sm">{city.name}</span>
-                 <span className="text-white/80 text-[10px] uppercase tracking-wider">{country.name}</span>
-              </div>
-              {selectedItems.find(i => i.name === city.name) && (
-                <div className="absolute top-2 right-2 bg-emerald-600 text-white rounded-full p-1 shadow-md">
-                  <Check size={12} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-serif font-bold text-base text-stone-800 dark:text-stone-200">{city.name}</span>
+                  <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">{country.name}</span>
                 </div>
-              )}
+                {selectedItems.find(i => i.name === city.name) && (
+                  <div className="bg-emerald-600 text-white rounded-full p-1 shadow-md">
+                    <Check size={12} />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -487,7 +277,7 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
                <label className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2 block">已选择目的地</label>
                <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto custom-scrollbar">
                  {selectedItems.length === 0 ? (
-                   <span className="text-sm text-stone-400 italic">点击上方图片选择...</span>
+                   <span className="text-sm text-stone-400 italic">点击上方选项选择...</span>
                  ) : (
                    selectedItems.map(item => (
                      <span key={item.name} className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-100 dark:border-emerald-900/50">
@@ -539,9 +329,8 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
                   icon={defaultIcon}
                >
                  <Popup offset={[0, -30]} className="font-sans">
-                   <div className="text-center p-1">
-                     <img src={getImgUrl(item.enName)} alt={item.name} className="w-20 h-20 object-cover rounded-lg mb-2 mx-auto" />
-                     <h3 className="font-bold text-stone-800">{item.fullName || item.name}</h3>
+                   <div className="text-center p-2 min-w-[120px]">
+                     <h3 className="font-bold text-stone-800 dark:text-stone-200">{item.fullName || item.name}</h3>
                    </div>
                  </Popup>
                </Marker>
