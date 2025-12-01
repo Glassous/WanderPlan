@@ -42,14 +42,11 @@ const App: React.FC = () => {
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
   const models = [
     { value: 'qwen-flash', label: 'Qwen Flash' },
-    { value: 'qwen-turbo', label: 'Qwen Turbo' },
     { value: 'qwen-plus', label: 'Qwen Plus' },
     { value: 'qwen-max', label: 'Qwen Max' },
     { value: 'qwen3-max', label: 'Qwen3 Max' },
     { value: 'qwen3-235b-a22b-instruct-2507', label: 'Qwen3 235B' },
-    { value: 'deepseek-v3.2-exp', label: 'DeepSeek V3.2 Exp' },
-    { value: 'glm-4.6', label: 'GLM-4.6' },
-    { value: 'Moonshot-Kimi-K2-Instruct', label: 'Kimi K2' }
+    { value: 'deepseek-v3.2-exp', label: 'DeepSeek V3.2 Exp' }
   ];
 
   useEffect(() => {
