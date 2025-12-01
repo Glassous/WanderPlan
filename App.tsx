@@ -3,6 +3,7 @@ import TravelForm from './components/TravelForm';
 import ItineraryList from './components/ItineraryList';
 import MapDisplay from './components/MapDisplay';
 import ThemeBackground from './components/ThemeBackground';
+import DestinationPicker from './components/DestinationPicker'; // 引入组件
 import { generateItinerary } from './services/qwenservice';
 import { fetchSharedItinerary } from './services/community'
 import { TripFormData, Itinerary, Activity } from './types';
@@ -32,11 +33,15 @@ const App: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareModalLink, setShareModalLink] = useState<string>('');
-  const [copySuccess, setCopySuccess] = useState(false); // 新增：复制成功状态
+  const [copySuccess, setCopySuccess] = useState(false); 
   
   const [navigationSource, setNavigationSource] = useState<'form' | 'history' | 'community' | 'import'>('form');
   const [activeFormTab, setActiveFormTab] = useState<'plan' | 'history' | 'custom' | 'community'>('plan');
   
+  // 灵感罗盘相关状态
+  const [isDestinationPickerOpen, setIsDestinationPickerOpen] = useState(false);
+  const [pickedDestination, setPickedDestination] = useState<string | null>(null);
+
   // 模型选择相关状态
   const [model, setModel] = useState<string>('qwen-plus');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
@@ -81,7 +86,6 @@ const App: React.FC = () => {
           setActiveTab('plan')
           setNavigationSource('community')
           
-          // 在成功加载后，移除 URL 中的 share 参数
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete('share');
           window.history.replaceState(null, '', newUrl.toString());
@@ -125,7 +129,6 @@ const App: React.FC = () => {
     };
   }, [theme]);
 
-  // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const modelDropdown = document.querySelector('.model-dropdown-trigger');
@@ -242,7 +245,7 @@ const App: React.FC = () => {
     if (!itinerary?.shareId) return;
     const link = `${window.location.origin}${window.location.pathname}?share=${itinerary.shareId}`;
     setShareModalLink(link);
-    setCopySuccess(false); // 打开时重置复制状态
+    setCopySuccess(false); 
     setShareModalOpen(true);
   };
 
@@ -312,7 +315,6 @@ const App: React.FC = () => {
   };
 
   const hasResultData = !!(itinerary || partialItinerary);
-  // 修改处：增加 !streaming 判断，确保在生成过程中不显示地图，避免布局跳动和地图重绘
   const showMap = !isFormVisible && !isEditing && hasResultData && !streaming;
   const currentVisualTheme = isFormVisible || !hasResultData ? 'default' : 
     (itinerary?.visualTheme || partialItinerary?.visualTheme || 'default');
@@ -340,10 +342,9 @@ const App: React.FC = () => {
                   <ArrowLeft size={18} />
                 </button>
               )}
-              {/* 模型切换下拉菜单 - 仅在表单页面显示 */}
+              
               {isFormVisible && (
                 <div className="relative hidden sm:block">
-                {/* 触发按钮 */}
                 <button
                   onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
                   className="model-dropdown-trigger flex items-center gap-1 bg-transparent text-sm border border-transparent hover:border-stone-200 dark:hover:border-stone-700 rounded-md px-3 py-1.5 text-stone-600 dark:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-stone-700 cursor-pointer transition-colors"
@@ -354,7 +355,6 @@ const App: React.FC = () => {
                   </svg>
                 </button>
                 
-                {/* 下拉面板 */}
                 {isModelDropdownOpen && (
                   <div className="model-dropdown-menu absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 overflow-hidden z-50">
                     {models.map((m) => (
@@ -425,6 +425,10 @@ const App: React.FC = () => {
                       onImportItinerary={handleImportItinerary}
                       onTabChange={setActiveFormTab}
                       initialTab={activeFormTab}
+                      
+                      // 传递给表单的 Props
+                      onOpenDestinationPicker={() => setIsDestinationPickerOpen(true)}
+                      pickedDestination={pickedDestination}
                     />
                     {error && (
                       <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded-xl border border-red-200 dark:border-red-900/50 text-sm">
@@ -456,7 +460,6 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* 修改处：增加 !streaming 判断，确保流式生成时不渲染地图容器 */}
             {hasResultData && !isFormVisible && !streaming && (
               <div className={`
                  lg:col-span-8 
@@ -475,7 +478,6 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {/* 修改处：增加 !streaming 判断，流式生成时隐藏移动端底部切换按钮 */}
         {!isFormVisible && hasResultData && !streaming && (
           <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-stone-800/90 backdrop-blur-md border border-stone-200 dark:border-stone-700 p-1.5 rounded-full flex shadow-xl z-50 gap-1">
             <button 
@@ -504,6 +506,17 @@ const App: React.FC = () => {
         )}
       </div>
       
+      {/* 灵感罗盘弹窗 - 全局渲染 */}
+      {isDestinationPickerOpen && (
+        <DestinationPicker 
+          onClose={() => setIsDestinationPickerOpen(false)}
+          onConfirm={(dest) => {
+            setPickedDestination(dest);
+          }}
+          initialSelection={pickedDestination || undefined}
+        />
+      )}
+
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 backdrop-blur-sm bg-stone-950/30" onClick={cancelDelete}></div>
