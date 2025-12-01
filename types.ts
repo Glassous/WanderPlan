@@ -25,6 +25,8 @@ export interface Itinerary {
   summary: string;
   days: DayPlan[];
   visualTheme: string; // New field for background theme
+  model?: string; // 生成行程的模型
+  notes?: string[]; // 注意事项
   shareId?: string;
   inCommunity?: boolean;
 }

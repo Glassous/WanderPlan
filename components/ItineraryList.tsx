@@ -407,6 +407,14 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
               <p className="text-stone-600 dark:text-stone-400 leading-relaxed font-light text-sm md:text-base border-l-2 border-amber-400 pl-4 italic">
                 {displayItinerary.summary || "AI正在为您规划完美的旅行体验..."}
               </p>
+              
+              {/* 模型信息显示 */}
+              {displayItinerary.model && (
+                <div className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+                  {displayItinerary.model}
+                </div>
+              )}
+              
               {streaming && (
                 <div className="mt-4 flex items-center text-xs text-emerald-600 dark:text-emerald-400">
                   <div className="flex space-x-1">
@@ -415,6 +423,28 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
                   </div>
                   <span className="ml-2 font-medium">AI正在生成行程...</span>
+                </div>
+              )}
+              
+              {/* 注意事项展开折叠组件 */}
+              {displayItinerary.notes && displayItinerary.notes.length > 0 && (
+                <div className="mt-3">
+                  <details className="group">
+                    <summary className="flex items-center justify-between cursor-pointer list-none text-sm font-medium text-stone-700 dark:text-stone-300 hover:text-emerald-800 dark:hover:text-emerald-400 transition-colors">
+                      <span>旅行注意事项</span>
+                      <svg className="w-4 h-4 transition-transform duration-200 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div className="mt-3 text-sm text-stone-600 dark:text-stone-400 space-y-2 pl-5 border-l-2 border-stone-100 dark:border-stone-800/50">
+                      {displayItinerary.notes.map((note, index) => (
+                        <div key={index} className="flex gap-2">
+                          <span className="text-emerald-500 dark:text-emerald-400 mt-1">•</span>
+                          <span>{note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               )}
             </div>

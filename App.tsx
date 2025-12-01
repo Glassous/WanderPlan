@@ -343,8 +343,9 @@ const App: React.FC = () => {
                   <ArrowLeft size={18} />
                 </button>
               )}
-              {/* 模型切换下拉菜单 */}
-              <div className="relative hidden sm:block">
+              {/* 模型切换下拉菜单 - 仅在表单页面显示 */}
+              {isFormVisible && (
+                <div className="relative hidden sm:block">
                 {/* 触发按钮 */}
                 <button
                   onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
@@ -375,7 +376,8 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 )}
-              </div>
+                </div>
+              )}
               <div className="flex items-center gap-1.5">
                 <button 
                   onClick={() => window.open('https://github.com/Glassous/WanderPlan', '_blank', 'noopener')}

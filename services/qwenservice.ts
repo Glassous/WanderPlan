@@ -14,12 +14,21 @@ export type StreamCallback = (partialItinerary: Partial<Itinerary> | null, isDon
 function tryParseJSON(jsonStr: string): any {
   if (!jsonStr) return null;
   
+  // 1. 移除可能存在的 Markdown 代码块标记
+  let cleanedStr = jsonStr;
+  // 移除开头的 ```json 或 ```
+  cleanedStr = cleanedStr.replace(/^\s*```(json)?\s*/i, '');
+  // 移除结尾的 ```
+  cleanedStr = cleanedStr.replace(/\s*```\s*$/i, '');
+  // 移除可能的首尾空格
+  cleanedStr = cleanedStr.trim();
+  
   try {
-    // 1. 如果已经是完整的 JSON，直接解析
-    return JSON.parse(jsonStr);
+    // 2. 如果已经是完整的 JSON，直接解析
+    return JSON.parse(cleanedStr);
   } catch (e) {
-    // 2. 开始修复逻辑
-    let repaired = jsonStr;
+    // 3. 开始修复逻辑
+    let repaired = cleanedStr;
     
     let inString = false;
     let escape = false;
@@ -58,20 +67,20 @@ function tryParseJSON(jsonStr: string): any {
       }
     }
     
-    // 3. 补全未闭合的字符串
+    // 4. 补全未闭合的字符串
     if (inString) {
       repaired += '"';
     }
     
-    // 4. 去除末尾可能导致错误的逗号 (例如: {"key": "value",)
+    // 5. 去除末尾可能导致错误的逗号 (例如: {"key": "value",)
     repaired = repaired.replace(/,\s*$/, '');
     
-    // 5. 处理尾随冒号 (例如: {"key":)，补全 null 以便解析
+    // 6. 处理尾随冒号 (例如: {"key":)，补全 null 以便解析
     if (/:\s*$/.test(repaired)) {
         repaired += 'null';
     }
 
-    // 6. 按照栈的逆序补全所有缺失的括号
+    // 7. 按照栈的逆序补全所有缺失的括号
     while (stack.length > 0) {
       repaired += stack.pop();
     }
@@ -106,14 +115,15 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     【强制要求】请严格按照以下格式和顺序生成JSON内容，确保流式输出效果：
     1. 必须使用简体中文回答。
     2. 必须逐段生成JSON内容，确保流式输出效果。
-    3. 必须先生成基本信息（tripTitle、summary、visualTheme），再生成days数组，最后生成activities。
+    3. 必须先生成基本信息（tripTitle、summary、visualTheme），再生成days数组，然后生成activities，最后生成notes数组。
     4. 必须确保每次输出的JSON片段都能被部分解析。
     5. 每一项活动必须提供准确的纬度和经度坐标。
     6. 响应必须是符合所提供结构的有效JSON字符串。
     7. 行程安排要合理，考虑路程时间。
     8. visualTheme 字段必须严格从列表 ['urban','beach','rainforest','desert','lake','grassland','canyon','snow','island','glacier','ancient_town','historic','port','countryside','tropical'] 中选择一个。
     9. 必须生成${data.duration}天的行程，不多不少。
-    10. 必须确保JSON格式完全正确，没有语法错误。
+    10. 必须生成5-10条旅行注意事项，包括当地习俗、天气、交通、安全等方面。
+    11. 必须确保JSON格式完全正确，没有语法错误。
 
     【JSON结构示例】：
     {
@@ -137,6 +147,11 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
             }
           ]
         }
+      ],
+      "notes": [
+        "注意事项1...",
+        "注意事项2...",
+        "注意事项3..."
       ]
     }
 
@@ -147,6 +162,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     - 必须确保每个activity对象都有time、activityName、description、locationName和coordinates字段。
     - 必须确保coordinates对象包含latitude和longitude字段。
     - 必须确保visualTheme字段从指定列表中选择。
+    - 必须生成5-10条旅行注意事项，放在notes数组中。
     - 必须确保JSON格式完全正确，没有语法错误。
     - 必须逐段生成内容，确保流式输出效果。
   `;
@@ -183,16 +199,22 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
         throw new Error("No response from AI");
       }
 
-      const result = JSON.parse(content);
+      // 移除可能存在的 Markdown 代码块标记
+      let cleanedContent = content;
+      cleanedContent = cleanedContent.replace(/^\s*```(json)?\s*/i, '');
+      cleanedContent = cleanedContent.replace(/\s*```\s*$/i, '');
+      cleanedContent = cleanedContent.trim();
+      
+      const result = JSON.parse(cleanedContent);
       
       // 确保days数组存在且不为空
       if (!result.days || !Array.isArray(result.days) || result.days.length === 0) {
         // 检查是否需要重试
-      if (retryCount < MAX_RETRIES) {
-        console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
-        // 递归调用，重试生成行程
-        return generateItinerary(data, streamCallback, retryCount + 1, model);
-      } else {
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`AI未生成有效的days数组，进行重试 ${retryCount + 1}/${MAX_RETRIES}`);
+          // 递归调用，重试生成行程
+          return generateItinerary(data, streamCallback, retryCount + 1, model);
+        } else {
           // 如果达到最大重试次数，使用预生成的天数结构
           const duration = parseInt(data.duration.toString()) || 1;
           const fallbackDays = Array.from({ length: duration }, (_, i) => ({
@@ -210,6 +232,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
         ...result,
         id: crypto.randomUUID(),
         createdAt: Date.now(),
+        model: model, // 添加生成模型信息
       } as Itinerary;
     }
 
@@ -350,6 +373,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
       days: validDays,
       id: crypto.randomUUID(),
       createdAt: Date.now(),
+      model: model, // 添加生成模型信息
     } as Itinerary;
 
     // 最后一次回调，标记完成
