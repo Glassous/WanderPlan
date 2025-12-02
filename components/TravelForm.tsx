@@ -2,7 +2,16 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TripFormData, Itinerary } from '../types';
 import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2, RefreshCw } from 'lucide-react';
 import { listCommunityItems, CommunityItem, fetchSharedItinerary } from '../services/community';
-// 移除内部引入: import DestinationPicker from './DestinationPicker';
+
+// 修改文案，专注于“目的地选择”引导
+const INSPIRATION_TEXTS = [
+  "去哪儿玩？点我探索 ✨",
+  "热门目的地推荐 🗺️",
+  "发现你的下一站 🌍",
+  "灵感枯竭？看看这里 🏙️",
+  "开启未知旅程 🚀",
+  "寻找旅行灵感 🎒"
+];
 
 interface TravelFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -13,8 +22,6 @@ interface TravelFormProps {
   onImportItinerary: (itinerary: Itinerary) => void;
   onTabChange?: (tab: 'plan' | 'history' | 'custom' | 'community') => void;
   initialTab?: 'plan' | 'history' | 'custom' | 'community';
-  
-  // 新增 Props 用于控制全局弹窗
   onOpenDestinationPicker?: () => void;
   pickedDestination?: string | null;
 }
@@ -41,18 +48,48 @@ const TravelForm: React.FC<TravelFormProps> = ({
     endTime: ''
   });
 
-  // 监听外部传入的 pickedDestination 变化，并更新表单
+  const [showInspirationBanner, setShowInspirationBanner] = useState(false);
+  const [bannerText, setBannerText] = useState(INSPIRATION_TEXTS[0]);
+  const bannerTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (pickedDestination) {
       setFormData(prev => ({
         ...prev,
         destination: pickedDestination
       }));
+      setShowInspirationBanner(false);
     }
   }, [pickedDestination]);
 
+  const handleInputFocus = () => {
+    if (!formData.destination) {
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = setTimeout(() => {
+        const randomText = INSPIRATION_TEXTS[Math.floor(Math.random() * INSPIRATION_TEXTS.length)];
+        setBannerText(randomText);
+        setShowInspirationBanner(true);
+      }, 1500);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    if (name === 'destination') {
+      if (value.trim() !== '') {
+        setShowInspirationBanner(false);
+        if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      }
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -61,7 +98,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
     onSubmit(formData);
   };
 
-  // 优化移动端输入框样式
   const inputClasses = "w-full bg-stone-50 dark:bg-stone-800/50 border border-stone-200 dark:border-stone-700/60 focus:border-emerald-600 dark:focus:border-emerald-500 focus:ring-0 px-3 py-3 transition-colors rounded-xl text-stone-800 dark:text-stone-100 placeholder-stone-400 text-sm md:text-base";
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
   
@@ -188,7 +224,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
     <>
       <div className="bg-white dark:bg-stone-900/70 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-black/40 border border-stone-100 dark:border-stone-800/50">
         
-        {/* 响应式头部：移动端垂直排列，桌面端水平排列 */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6">
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-stone-800 dark:text-stone-100 flex items-center gap-3">
             <Sparkles className="text-amber-500 flex-shrink-0" size={24} />
@@ -197,7 +232,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
             </span>
           </h2>
           
-          {/* 按钮组：移动端支持水平滚动 */}
           <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0 w-full md:w-auto">
             <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50 flex-shrink-0">
               {['plan', 'custom', 'history'].map((tab) => (
@@ -244,11 +278,9 @@ const TravelForm: React.FC<TravelFormProps> = ({
         {view === 'plan' ? (
           <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
           
-          {/* Destination */}
           <div>
             <label className={labelClasses}>目的地</label>
-            <div className="relative flex items-center gap-2">
-              <div className="relative flex-grow">
+            <div className="relative"> 
                 <input
                   type="text"
                   name="destination"
@@ -256,26 +288,40 @@ const TravelForm: React.FC<TravelFormProps> = ({
                   placeholder="心之所向 (例如: 巴黎)"
                   value={formData.destination}
                   onChange={handleChange}
-                  className={`${inputClasses} pr-10`}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  className={`${inputClasses} pr-14`}
                 />
-                <div className="absolute right-3 top-3 pointer-events-none text-stone-300">
-                  {/* 可选：保留原始装饰性图标或留空 */}
+                
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+                   {/* 变形按钮 */}
+                   <button
+                    type="button"
+                    onClick={onOpenDestinationPicker}
+                    className={`
+                      relative overflow-hidden flex items-center justify-center
+                      h-10 rounded-lg text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30
+                      border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800
+                      hover:bg-emerald-100 dark:hover:bg-emerald-900/50
+                      active:scale-95 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                      ${showInspirationBanner ? 'w-auto px-3 shadow-lg ring-1 ring-emerald-500/30' : 'w-10 px-0 shadow-none ring-0'}
+                    `}
+                    title="灵感罗盘：探索去哪儿"
+                  >
+                    <Plane className={`w-5 h-5 flex-shrink-0 transition-transform duration-500 ${showInspirationBanner ? '-rotate-12' : 'group-hover:-rotate-12'}`} />
+                    
+                    {/* 文字容器 */}
+                    <div className={`
+                      overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                      ${showInspirationBanner ? 'max-w-[200px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}
+                    `}>
+                      <span className="text-xs font-bold">{bannerText}</span>
+                    </div>
+                  </button>
                 </div>
-              </div>
-              
-              {/* 灵感罗盘按钮 - 触发外部事件 */}
-              <button
-                type="button"
-                onClick={onOpenDestinationPicker}
-                className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all active:scale-95 shadow-sm group"
-                title="灵感罗盘：探索去哪儿"
-              >
-                <Plane className="w-6 h-6 transform group-hover:-rotate-12 transition-transform duration-500" />
-              </button>
             </div>
           </div>
 
-          {/* Duration */}
           <div>
             <label className={labelClasses}>天数</label>
             <div className="relative">
@@ -307,7 +353,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
             </div>
           </div>
 
-          {/* Travelers */}
           <div>
             <label className={labelClasses}>同行者</label>
             <input
@@ -342,7 +387,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
             </div>
           </div>
 
-          {/* Times */}
           <div className="grid grid-cols-2 gap-4 md:gap-8">
             <div>
                <label className={labelClasses}>首日出发 (可选)</label>
@@ -366,7 +410,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
             </div>
           </div>
 
-          {/* Budget */}
           <div>
             <label className={labelClasses}>预算等级</label>
             <div className="grid grid-cols-3 gap-2 md:gap-3 mt-2">
@@ -387,7 +430,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
             </div>
           </div>
 
-          {/* Interests */}
           <div>
             <label className={labelClasses}>旅行偏好 & 备注</label>
             <textarea
@@ -526,7 +568,6 @@ const TravelForm: React.FC<TravelFormProps> = ({
           </div>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            {/* Custom Form Content */}
              <div>
               <label className={labelClasses}>行程标题</label>
               <input
