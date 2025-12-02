@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw } from 'lucide-react';
+import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw, Trash } from 'lucide-react';
 import { DOMESTIC_DATA, DestinationItem, Coordinate } from '../data/domesticCities';
 import { INTERNATIONAL_DATA, CountryNode, ContinentNode } from '../data/internationalCities';
 
@@ -101,6 +101,10 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
     const text = selectedItems.map(i => i.fullName || i.name).join('; ');
     onConfirm(text);
     onClose();
+  };
+  
+  const handleClearAll = () => {
+    setSelectedItems([]);
   };
   
   const handleResetView = () => {
@@ -354,7 +358,18 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
           {/* Selection Bar */}
           <div className="p-4 bg-white dark:bg-stone-900 border-t border-stone-100 dark:border-stone-800 flex-shrink-0 z-10 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
              <div className="mb-3">
-               <label className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2 block">已选择目的地</label>
+               <div className="flex items-center justify-between mb-2">
+                 <label className="text-xs font-bold uppercase tracking-wider text-stone-400">已选择目的地</label>
+                 {selectedItems.length > 0 && (
+                   <button 
+                     onClick={handleClearAll}
+                     className="text-xs text-stone-400 hover:text-red-500 transition-colors flex items-center gap-1"
+                   >
+                     <Trash size={12} />
+                     清空
+                   </button>
+                 )}
+               </div>
                <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto custom-scrollbar">
                  {selectedItems.length === 0 ? (
                    <span className="text-sm text-stone-400 italic">点击上方选项选择...</span>
