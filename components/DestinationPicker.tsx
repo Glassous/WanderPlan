@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw } from 'lucide-react';
-import { DOMESTIC_CITIES, DestinationItem, Coordinate } from '../data/domesticCities';
+import { DOMESTIC_DATA, DestinationItem, Coordinate } from '../data/domesticCities';
 import { INTERNATIONAL_DATA, CountryNode, ContinentNode } from '../data/internationalCities';
 
 // --- 图片URL生成器 ---
@@ -15,27 +15,32 @@ const TILE_SOURCES = {
   carto: {
     name: 'CartoDB',
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; CARTO'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: ['a', 'b', 'c', 'd']
   },
   amap: {
     name: '高德地图 (仅中国)',
-    url: 'https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-    attribution: '&copy; 高德地图'
+    url: 'https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}',
+    attribution: '&copy; 高德地图',
+    subdomains: ['1', '2', '3', '4']
   },
   osm: {
     name: 'OpenStreetMap',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; OSM Contributors'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: ['a', 'b', 'c']
   },
   google_road: {
     name: '谷歌地图 (道路)',
-    url: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google Maps'
+    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
+    subdomains: ['0', '1', '2', '3']
   },
   google_sat: {
     name: '谷歌地图 (卫星)',
-    url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-    attribution: '&copy; Google Maps'
+    url: 'https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    attribution: '&copy; Google Maps',
+    subdomains: ['0', '1', '2', '3']
   }
 };
 type TileSourceKey = keyof typeof TILE_SOURCES;
@@ -103,30 +108,82 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
   };
 
   // 渲染国内列表
-  const renderDomestic = () => (
-    <div className="p-1 space-y-2">
-      {DOMESTIC_CITIES.map(city => (
-        <div 
-          key={city.name}
-          onClick={() => toggleSelection(city)}
-          className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
-            selectedItems.find(i => i.name === city.name) 
-              ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' 
-              : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="font-serif font-bold text-base text-stone-800 dark:text-stone-200">{city.name}</span>
-            {selectedItems.find(i => i.name === city.name) && (
-              <div className="bg-emerald-600 text-white rounded-full p-1 shadow-md animate-in zoom-in">
-                <Check size={12} />
+  const renderDomestic = () => {
+    // Level 1: 地区
+    if (navStack.length === 0) {
+      return (
+        <div className="p-1 space-y-2">
+          {DOMESTIC_DATA.map(region => (
+            <div 
+              key={region.name}
+              onClick={() => setNavStack([region])}
+              className="relative p-4 rounded-xl border-2 cursor-pointer transition-all border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-serif font-bold text-lg text-stone-800 dark:text-stone-200">{region.name}</span>
+                <ChevronRight size={16} className="text-stone-400" />
               </div>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-  );
+      );
+    }
+    
+    // Level 2: 省份
+    if (navStack.length === 1) {
+      const region = navStack[0];
+      return (
+        <div className="p-1 space-y-2">
+          {region.provinces.map(province => (
+            <div 
+              key={province.name}
+              onClick={() => setNavStack([...navStack, province])}
+              className="relative p-4 rounded-xl border-2 cursor-pointer transition-all border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-serif font-bold text-lg text-stone-800 dark:text-stone-200">{province.name}</span>
+                <ChevronRight size={16} className="text-stone-400" />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Level 3: 城市
+    if (navStack.length === 2) {
+      const province = navStack[1];
+      return (
+        <div className="p-1 space-y-2">
+          {province.cities.map(city => (
+            <div 
+              key={city.name}
+              onClick={() => toggleSelection(city)}
+              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                selectedItems.find(i => i.name === city.name) 
+                  ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' 
+                  : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-serif font-bold text-base text-stone-800 dark:text-stone-200">{city.name}</span>
+                  <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">{province.name}</span>
+                </div>
+                {selectedItems.find(i => i.name === city.name) && (
+                  <div className="bg-emerald-600 text-white rounded-full p-1 shadow-md">
+                    <Check size={12} />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    return null;
+  };
 
   // 渲染国际列表
   const renderInternational = () => {
@@ -266,6 +323,29 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
              </div>
           )}
 
+          {/* Breadcrumb for Domestic */}
+          {activeTab === 'domestic' && navStack.length > 0 && (
+             <div className="px-4 py-2 flex items-center gap-2 text-sm text-stone-500 bg-white dark:bg-stone-900/50 border-b border-stone-100 dark:border-stone-800">
+                <button 
+                  onClick={() => setNavStack(prev => prev.slice(0, -1))}
+                  className="p-1 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <div className="flex items-center gap-1 font-medium">
+                  <span className="cursor-pointer hover:text-emerald-600" onClick={() => setNavStack([])}>中国</span>
+                  {navStack.map((item, idx) => (
+                    <React.Fragment key={item.name}>
+                      <ChevronRight size={14} />
+                      <span className={idx === navStack.length - 1 ? 'text-stone-800 dark:text-stone-200' : 'cursor-pointer hover:text-emerald-600'} onClick={() => setNavStack(prev => prev.slice(0, idx + 1))}>
+                        {item.name}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </div>
+             </div>
+          )}
+
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
             {activeTab === 'domestic' ? renderDomestic() : renderInternational()}
@@ -317,6 +397,7 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
                key={currentSource}
                attribution={TILE_SOURCES[currentSource].attribution}
                url={TILE_SOURCES[currentSource].url}
+               subdomains={TILE_SOURCES[currentSource].subdomains}
              />
              
              <MapController markers={selectedItems.map(i => i.coords)} resetTrigger={resetCount} />
