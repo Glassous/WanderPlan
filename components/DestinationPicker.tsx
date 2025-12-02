@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw, Trash } from 'lucide-react';
-import { DOMESTIC_DATA, DestinationItem, Coordinate } from '../data/domesticCities';
+import { X, ChevronRight, ArrowLeft, Check, Layers, RefreshCcw, Trash, Dices } from 'lucide-react'; // 引入 Dices 图标
+import { DOMESTIC_DATA, DestinationItem, Coordinate, RegionNode } from '../data/domesticCities';
 import { INTERNATIONAL_DATA, CountryNode, ContinentNode } from '../data/internationalCities';
 
 // --- 图片URL生成器 ---
-// 使用 oss 处理参数进行 1:1 居中裁剪缩略图，w_400,h_400 既保证清晰度又节省流量
 const getImgUrl = (enName: string) => 
   `https://cityimage.glassous.top/${enName.toLowerCase()}.jpg?x-oss-process=image/resize,m_fill,w_400,h_400`;
 
@@ -45,14 +44,33 @@ const TILE_SOURCES = {
 };
 type TileSourceKey = keyof typeof TILE_SOURCES;
 
-// --- 地图子组件：自动缩放 & 视图控制 ---
+// --- 地图子组件：自动缩放 & 视图控制 (修复加载问题) ---
 const MapController: React.FC<{ markers: Coordinate[], resetTrigger: number }> = ({ markers, resetTrigger }) => {
   const map = useMap();
   
+  // 1. 修复地图瓦片加载问题：多次触发 invalidateSize 以适应 Modal 动画
+  useEffect(() => {
+    // 立即执行一次
+    map.invalidateSize();
+    
+    // 配合 CSS 动画 (duration-300)，在动画过程中和结束后多次触发
+    const timeouts = [10, 100, 300, 500].map(delay => 
+      setTimeout(() => {
+        map.invalidateSize();
+      }, delay)
+    );
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [map]); // 依赖 map 实例，确保组件挂载时执行
+
+  // 2. 处理标记点缩放
   useEffect(() => {
     if (markers.length > 0) {
       const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: true });
+      // 增加延时以确保在 invalidateSize 后执行 fitBounds
+      setTimeout(() => {
+         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: true });
+      }, 350);
     }
   }, [markers, map, resetTrigger]);
 
@@ -95,6 +113,38 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
         return [...prev, item];
       }
     });
+  };
+
+  // --- 新增：随机选择功能 ---
+  const handleRandomSelection = () => {
+    let allCities: DestinationItem[] = [];
+
+    if (activeTab === 'domestic') {
+      // 扁平化国内数据
+      DOMESTIC_DATA.forEach(region => {
+        region.provinces.forEach(province => {
+          allCities.push(...province.cities);
+        });
+      });
+    } else {
+      // 扁平化国际数据
+      INTERNATIONAL_DATA.forEach(continent => {
+        continent.countries.forEach(country => {
+          allCities.push(...country.cities);
+        });
+      });
+    }
+
+    if (allCities.length > 0) {
+      const randomCity = allCities[Math.floor(Math.random() * allCities.length)];
+      // 逻辑：随机选择通常是“帮我挑一个”，所以这里替换当前选择。
+      // 如果你想保留之前的选择并追加，可以改为 [...prev, randomCity]
+      setSelectedItems([randomCity]);
+      
+      // 可选：如果想在随机选择后自动定位到该城市的层级（例如自动进入该省份列表），需要复杂的反向查找逻辑。
+      // 这里为了简化，我们只清空导航栈，让用户看到选中的结果和地图定位。
+      // setNavStack([]); 
+    }
   };
 
   const handleConfirm = () => {
@@ -287,19 +337,31 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
                </button>
              </div>
              
-             {/* Tabs */}
-             <div className="bg-stone-200 dark:bg-stone-800 p-1 rounded-xl flex gap-1">
-               <button 
-                 onClick={() => { setActiveTab('domestic'); setNavStack([]); }}
-                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'domestic' ? 'bg-white dark:bg-stone-700 shadow text-emerald-800 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'}`}
+             {/* Tabs & Random Button */}
+             <div className="flex gap-2">
+               <div className="flex-1 bg-stone-200 dark:bg-stone-800 p-1 rounded-xl flex gap-1">
+                 <button 
+                   onClick={() => { setActiveTab('domestic'); setNavStack([]); }}
+                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'domestic' ? 'bg-white dark:bg-stone-700 shadow text-emerald-800 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'}`}
+                 >
+                   国内
+                 </button>
+                 <button 
+                   onClick={() => { setActiveTab('international'); setNavStack([]); }}
+                   className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'international' ? 'bg-white dark:bg-stone-700 shadow text-emerald-800 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'}`}
+                 >
+                   国际
+                 </button>
+               </div>
+               
+               {/* 随机按钮 */}
+               <button
+                 onClick={handleRandomSelection}
+                 className="px-3 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-400 rounded-xl flex items-center gap-1.5 transition-colors font-bold text-sm"
+                 title="随机帮我选一个"
                >
-                 国内探索
-               </button>
-               <button 
-                 onClick={() => { setActiveTab('international'); setNavStack([]); }}
-                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'international' ? 'bg-white dark:bg-stone-700 shadow text-emerald-800 dark:text-emerald-400' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'}`}
-               >
-                 世界漫游
+                 <Dices size={18} />
+                 <span className="hidden sm:inline">帮我选</span>
                </button>
              </div>
           </div>
@@ -372,7 +434,7 @@ const DestinationPicker: React.FC<DestinationPickerProps> = ({ onClose, onConfir
                </div>
                <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto custom-scrollbar">
                  {selectedItems.length === 0 ? (
-                   <span className="text-sm text-stone-400 italic">点击上方选项选择...</span>
+                   <span className="text-sm text-stone-400 italic">点击上方选项或使用随机按钮...</span>
                  ) : (
                    selectedItems.map(item => (
                      <span key={item.name} className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-full text-xs font-medium border border-emerald-100 dark:border-emerald-900/50">
