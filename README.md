@@ -36,7 +36,7 @@ WanderPlan 是一个现代化的旅行规划应用，结合了AI智能规划与�
 
 1. **克隆项目**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Glassous/WanderPlan
    cd WanderPlan
    ```
 
