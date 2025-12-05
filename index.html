@@ -5,6 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WanderPlan</title>
     <link rel="icon" type="image/png" href="/WanderPlanLogo.png" />
+    
+    <!-- 1. 添加启动动画的 CSS (在 Tailwind 加载前生效) -->
+    <style>
+      /* 基础容器 */
+      #app-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #fafaf9; /* stone-50 */
+        font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+        transition: opacity 0.5s ease-out;
+      }
+
+      /* Logo 动画 */
+      .loading-logo-container {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        position: relative;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .loading-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+      }
+
+      /* 旋转圆环 */
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(6, 95, 70, 0.1); /* emerald-800 with low opacity */
+        border-top-color: #065f46; /* emerald-800 */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      /* 文字 */
+      .loading-text {
+        margin-top: 16px;
+        font-size: 14px;
+        color: #57534e; /* stone-600 */
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out 0.2s forwards;
+      }
+
+      /* 深色模式适配 */
+      @media (prefers-color-scheme: dark) {
+        #app-loading {
+          background-color: #0c0a09; /* stone-950 */
+        }
+        .loading-spinner {
+          border-color: rgba(52, 211, 153, 0.1); /* emerald-400 with low opacity */
+          border-top-color: #34d399; /* emerald-400 */
+        }
+        .loading-text {
+          color: #a8a29e; /* stone-400 */
+        }
+      }
+
+      /* 动画关键帧 */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    </style>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -118,7 +203,17 @@
 </script>
 </head>
   <body class="bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 antialiased transition-colors duration-500">
-    <div id="root"></div>
+    <div id="root">
+      <!-- 2. 将加载动画 HTML 放入 root 内部 -->
+      <!-- React 加载完成后会自动替换掉这里的内容 -->
+      <div id="app-loading">
+        <div class="loading-logo-container">
+           <img src="/WanderPlanLogo.png" alt="WanderPlan" class="loading-logo" onerror="this.style.display='none'" />
+        </div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text">WanderPlan</div>
+      </div>
+    </div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
