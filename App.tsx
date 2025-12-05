@@ -54,6 +54,24 @@ const App: React.FC = () => {
     { value: 'deepseek-v3.2-exp', label: 'DeepSeek V3.2 Exp' }
   ];
 
+  // --- 新增：处理启动动画的平滑过渡 ---
+  useEffect(() => {
+    const loader = document.getElementById('app-loading');
+    if (loader) {
+      // 稍微延迟一点点，确保 React 组件已经完成首次渲染 paint
+      setTimeout(() => {
+        loader.classList.add('fade-out');
+        
+        // 等待 CSS 动画结束后从 DOM 中移除
+        setTimeout(() => {
+          if (loader.parentNode) {
+            loader.parentNode.removeChild(loader);
+          }
+        }, 600); // 必须与 CSS 中的 transition 时间 (0.6s) 匹配
+      }, 100);
+    }
+  }, []);
+
   useEffect(() => {
     try {
       const savedHistory = localStorage.getItem('wanderplan_history');

@@ -6,7 +6,6 @@
     <title>WanderPlan</title>
     <link rel="icon" type="image/png" href="/WanderPlanLogo.png" />
     
-    <!-- 1. 添加启动动画的 CSS (在 Tailwind 加载前生效) -->
     <style>
       /* 基础容器 */
       #app-loading {
@@ -22,7 +21,14 @@
         justify-content: center;
         background-color: #fafaf9; /* stone-50 */
         font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-        transition: opacity 0.5s ease-out;
+        transition: opacity 0.6s ease-out, visibility 0.6s ease-out; /* 增加 visibility 过渡 */
+      }
+
+      /* 消失状态 - 用于 JS 切换 */
+      #app-loading.fade-out {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
       }
 
       /* Logo 动画 */
@@ -76,7 +82,6 @@
         }
       }
 
-      /* 动画关键帧 */
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
@@ -141,7 +146,6 @@
         font-family: 'Noto Serif SC', serif;
       }
       
-      /* Custom scrollbar - Default style (still used for other elements if needed) */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -160,7 +164,6 @@
         background: #a8a29e; 
       }
 
-      /* Hide scrollbar utility - NEW ADDITION */
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
@@ -179,7 +182,6 @@
         background: #1c1917;
       }
 
-      /* Subtle fade in animation */
       @keyframes fadeIn {
         from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
@@ -203,17 +205,18 @@
 </script>
 </head>
   <body class="bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100 antialiased transition-colors duration-500">
-    <div id="root">
-      <!-- 2. 将加载动画 HTML 放入 root 内部 -->
-      <!-- React 加载完成后会自动替换掉这里的内容 -->
-      <div id="app-loading">
-        <div class="loading-logo-container">
-           <img src="/WanderPlanLogo.png" alt="WanderPlan" class="loading-logo" onerror="this.style.display='none'" />
-        </div>
-        <div class="loading-spinner"></div>
-        <div class="loading-text">WanderPlan</div>
+    <div id="root"></div>
+    
+    <!-- 加载动画移到 root 后面，防止被 React 初始化时清除 -->
+    <!-- 通过 CSS 和 JS 控制消失 -->
+    <div id="app-loading">
+      <div class="loading-logo-container">
+         <img src="/WanderPlanLogo.png" alt="WanderPlan" class="loading-logo" onerror="this.style.display='none'" />
       </div>
+      <div class="loading-spinner"></div>
+      <div class="loading-text">WanderPlan</div>
     </div>
+
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
