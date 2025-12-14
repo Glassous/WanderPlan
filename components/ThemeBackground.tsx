@@ -15,12 +15,12 @@ const ThemeBackground: React.FC<ThemeBackgroundProps> = ({ theme, mode, children
     <div className="relative min-h-screen w-full overflow-hidden transition-all duration-1000 ease-in-out">
       {/* Base Background Layer */}
       <div 
-        className="absolute inset-0 z-0 transition-all duration-1000"
+        className="fixed inset-0 z-0 transition-all duration-1000"
         style={{ background: config.bg }}
       />
 
       {/* Shapes Layer */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {config.shapes.map((shape, idx) => (
           <div
             key={`${theme}-${mode}-${idx}`}
@@ -35,7 +35,7 @@ const ThemeBackground: React.FC<ThemeBackgroundProps> = ({ theme, mode, children
         
         {/* Special 'Stars' overlay for Night modes globally if not explicit */}
         {mode === 'dark' && (
-           <div className="absolute inset-0 opacity-70 mix-blend-screen"
+           <div className="fixed inset-0 opacity-70 mix-blend-screen"
              style={{
                backgroundImage: `
                  radial-gradient(1.5px 1.5px at 10% 10%, white, transparent), 
