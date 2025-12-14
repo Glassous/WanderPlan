@@ -3,61 +3,120 @@ import { COMMON_SHAPES } from './common';
 
 export const ancientTownTheme: ThemeDefinition = {
   day: {
-    bg: 'linear-gradient(to bottom, #fef3c7, #e7e5e4, #a8a29e)',
+    bg: 'linear-gradient(180deg, #fefce8 0%, #e5e5f7 100%)',
     shapes: [
+      { 
+        type: 'rect', 
+        style: { 
+          bottom: '0', 
+          left: '10%', 
+          width: '15%', 
+          height: '35%', 
+          background: '#78716c', 
+          opacity: 0.4,
+          borderRadius: '5px 5px 0 0',
+          boxShadow: 'inset 2px 2px 5px rgba(255,255,255,0.3)'
+        } 
+      }, // Building 1
+      { 
+        type: 'rect', 
+        style: { 
+          bottom: '0', 
+          left: '30%', 
+          width: '20%', 
+          height: '45%', 
+          background: '#57534e', 
+          opacity: 0.3,
+          borderRadius: '8px 8px 0 0'
+        } 
+      }, // Building 2
+      { 
+        type: 'rect', 
+        style: { 
+          bottom: '35%', 
+          left: '9%', 
+          width: '17%', 
+          height: '10%', 
+          background: '#44403c', 
+          transform: 'skewX(-20deg)', 
+          opacity: 0.5,
+          borderRadius: '2px'
+        } 
+      }, // Roof 1
+      { 
+        type: 'rect', 
+        style: { 
+          bottom: '45%', 
+          left: '28%', 
+          width: '24%', 
+          height: '12%', 
+          background: '#292524', 
+          transform: 'skewX(15deg)', 
+          opacity: 0.4,
+          borderRadius: '2px'
+        } 
+      }, // Roof 2
       { 
         type: 'circle', 
         style: { 
-          top: '-10%', 
-          right: '20%', 
-          width: '40vw', 
-          height: '40vw', 
-          background: '#d6d3d1', 
-          filter: 'blur(80px)', 
+          top: '-15%', 
+          right: '-10%', 
+          width: '50vw', 
+          height: '50vw', 
+          background: '#fde047', 
+          filter: 'blur(60px)', 
           opacity: 0.4 
         } 
-      },
+      }, // Soft sun
+      // Cobblestone texture hint
       {
-        type: 'rect',
+        type: 'gradient',
         style: {
-          top: 0,
-          left: 0,
+          bottom: '0',
+          left: '0',
           width: '100%',
-          height: '100%',
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'6\' height=\'6\' viewBox=\'0 0 6 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'0.03\' fill-rule=\'evenodd\'%3E%3Cpath d=\'M5 0h1L0 6V5zM6 5v1H5z\'/%3E%3C/g%3E%3C/svg%3E")',
-          opacity: 0.5
+          height: '15%',
+          backgroundImage: 'radial-gradient(#d6d3d1 2px, transparent 2px)',
+          backgroundSize: '20px 20px',
+          opacity: 0.2
         }
-      } // Texture
+      }
     ]
   },
   night: {
-    bg: 'linear-gradient(to bottom, #1c1917, #292524, #44403c)',
+    bg: 'linear-gradient(180deg, #1c1917 0%, #44403c 100%)',
     shapes: [
-        COMMON_SHAPES.stars,
+      COMMON_SHAPES.moon,
       { 
-        type: 'circle', 
+        type: 'rect', 
         style: { 
-          top: '40%', 
-          left: '20%', 
-          width: '150px', 
-          height: '150px', 
-          background: '#ea580c', 
-          filter: 'blur(80px)', 
-          opacity: 0.2 
+          bottom: '0', 
+          left: '10%', 
+          width: '15%', 
+          height: '35%', 
+          background: '#292524', 
+          opacity: 0.8 
         } 
-      }, // Lantern glow 1
+      },
       { 
-        type: 'circle', 
+        type: 'rect', 
         style: { 
-          top: '60%', 
-          right: '30%', 
-          width: '200px', 
-          height: '200px', 
-          background: '#fb923c', 
-          filter: 'blur(90px)', 
-          opacity: 0.15 
+          bottom: '0', 
+          left: '30%', 
+          width: '20%', 
+          height: '45%', 
+          background: '#1c1917', 
+          opacity: 0.9 
         } 
-      } // Lantern glow 2
+      },
+      // Lanterns
+      { type: 'circle', style: { bottom: '30%', left: '15%', width: '15px', height: '15px', background: '#ef4444', boxShadow: '0 0 15px 5px #ef4444', opacity: 0.8 } },
+      { type: 'circle', style: { bottom: '40%', left: '35%', width: '15px', height: '15px', background: '#ef4444', boxShadow: '0 0 15px 5px #ef4444', opacity: 0.8 } },
+      { type: 'circle', style: { bottom: '25%', left: '50%', width: '12px', height: '12px', background: '#f97316', boxShadow: '0 0 12px 4px #f97316', opacity: 0.7 } },
+      
+      // Warm window lights
+      { type: 'rect', style: { bottom: '15%', left: '15%', width: '10px', height: '15px', background: '#fcd34d', opacity: 0.6, boxShadow: '0 0 5px #fcd34d' } },
+      { type: 'rect', style: { bottom: '25%', left: '35%', width: '12px', height: '18px', background: '#fcd34d', opacity: 0.5, boxShadow: '0 0 5px #fcd34d' } }
     ]
   }
 };

@@ -120,7 +120,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     5. 每一项活动必须提供准确的纬度和经度坐标。
     6. 响应必须是符合所提供结构的有效JSON字符串。
     7. 行程安排要合理，考虑路程时间。
-    8. visualTheme 字段必须严格从列表 ['urban','beach','rainforest','desert','lake','grassland','canyon','snow','island','glacier','ancient_town','historic','port','countryside','tropical'] 中选择一个。
+    8. visualTheme 字段必须严格从列表 ['urban','beach','rainforest','desert','lake','grassland','canyon','snow','island','glacier','ancient_town','historic','port','countryside','tropical','mountain','sakura','autumn'] 中选择一个。
     9. 必须生成${data.duration}天的行程，不多不少。
     10. 必须生成5-10条旅行注意事项，包括当地习俗、天气、交通、安全等方面。
     11. 必须确保JSON格式完全正确，没有语法错误。

@@ -42,7 +42,11 @@ export const snowTheme: ThemeDefinition = {
           transform: 'rotate(20deg)',
           opacity: 0.8
         } 
-      }
+      },
+      // Ice crystals / Sparkles
+      { type: 'circle', style: { top: '30%', left: '20%', width: '4px', height: '4px', background: '#fff', boxShadow: '0 0 5px 1px #e0f2fe', opacity: 0.6 } },
+      { type: 'circle', style: { top: '50%', right: '30%', width: '3px', height: '3px', background: '#fff', boxShadow: '0 0 5px 1px #e0f2fe', opacity: 0.7 } },
+      { type: 'circle', style: { bottom: '40%', left: '40%', width: '5px', height: '5px', background: '#fff', boxShadow: '0 0 5px 1px #e0f2fe', opacity: 0.5 } },
     ]
   },
   night: {
@@ -85,7 +89,19 @@ export const snowTheme: ThemeDefinition = {
           filter: 'blur(40px)', 
           opacity: 0.15 
         } 
-      } // Snow reflection
+      }, // Snow reflection
+      // Icy shimmer
+      {
+        type: 'gradient',
+        style: {
+          bottom: '0',
+          left: '0',
+          width: '100%',
+          height: '20%',
+          background: 'linear-gradient(to top, rgba(255,255,255,0.05) 0%, transparent 100%)',
+          filter: 'blur(20px)'
+        }
+      }
     ]
   }
 };

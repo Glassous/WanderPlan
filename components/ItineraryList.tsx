@@ -323,6 +323,33 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
                rows={4}
              />
            </div>
+           
+           <div className="mt-8">
+             <label className={editLabel}>视觉主题 (Visual Theme)</label>
+             <select
+               value={displayItinerary.visualTheme || 'default'}
+               onChange={(e) => setEditedItinerary({...displayItinerary, visualTheme: e.target.value})}
+               className="w-full bg-transparent border-b border-stone-200 dark:border-stone-700/60 focus:border-emerald-500 text-stone-700 dark:text-stone-200 px-0 py-2 outline-none text-base transition-colors"
+             >
+               {[
+                 { value: 'default', label: '默认 (Default)' },
+                 { value: 'urban', label: '城市 (Urban)' },
+                 { value: 'beach', label: '海滩 (Beach)' },
+                 { value: 'rainforest', label: '雨林 (Rainforest)' },
+                 { value: 'desert', label: '沙漠 (Desert)' },
+                 { value: 'snow', label: '雪景 (Snow)' },
+                 { value: 'ancient_town', label: '古镇 (Ancient Town)' },
+                 { value: 'mountain', label: '山脉 (Mountain)' },
+                 { value: 'countryside', label: '田园 (Countryside)' },
+                 { value: 'sakura', label: '樱花 (Sakura)' },
+                 { value: 'autumn', label: '深秋 (Autumn)' },
+               ].map(option => (
+                 <option key={option.value} value={option.value} className="bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-200">
+                   {option.label}
+                 </option>
+               ))}
+             </select>
+           </div>
         </div>
 
         {displayItinerary.days.map((day, dayIdx) => (

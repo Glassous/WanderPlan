@@ -42,6 +42,19 @@ export const desertTheme: ThemeDefinition = {
             background: 'linear-gradient(to bottom, transparent 80%, rgba(234, 88, 12, 0.2) 100%)',
             mixBlendMode: 'overlay'
         }
+      },
+      // Heat haze
+      {
+        type: 'gradient',
+        style: {
+          bottom: '0',
+          left: '0',
+          width: '100%',
+          height: '20%',
+          background: 'linear-gradient(to top, rgba(255,255,255,0.2) 0%, transparent 100%)',
+          filter: 'blur(10px)',
+          opacity: 0.5
+        }
       }
     ]
   },
@@ -72,7 +85,18 @@ export const desertTheme: ThemeDefinition = {
           transform: 'rotate(-45deg)',
           filter: 'blur(40px)'
         } 
-      } // Milky way hint
+      }, // Milky way hint
+      {
+        type: 'circle',
+        style: {
+          bottom: '0',
+          right: '0',
+          width: '100%',
+          height: '30%',
+          background: 'linear-gradient(to top, #312e81, transparent)',
+          opacity: 0.5
+        }
+      }
     ]
   }
 };
