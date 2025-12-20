@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { TripFormData, Itinerary } from '../types';
-import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2, RefreshCw } from 'lucide-react';
+import { Plane, Sparkles, History as HistoryIcon, Trash2, Upload, User, Heart, Users, Clock, Loader2, RefreshCw, FileText } from 'lucide-react';
 import { listCommunityItems, CommunityItem, fetchSharedItinerary } from '../services/community';
 
 // 修改文案，专注于“目的地选择”引导
@@ -24,6 +24,7 @@ interface TravelFormProps {
   initialTab?: 'plan' | 'history' | 'custom' | 'community';
   onOpenDestinationPicker?: () => void;
   pickedDestination?: string | null;
+  onTextSubmit?: (text: string) => void;
 }
 
 const TravelForm: React.FC<TravelFormProps> = ({ 
@@ -36,7 +37,8 @@ const TravelForm: React.FC<TravelFormProps> = ({
   onTabChange,
   initialTab = 'plan',
   onOpenDestinationPicker,
-  pickedDestination
+  pickedDestination,
+  onTextSubmit
 }) => {
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
@@ -102,6 +104,65 @@ const TravelForm: React.FC<TravelFormProps> = ({
   const labelClasses = "block text-xs font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1 ml-1";
   
   const [view, setView] = useState<'plan' | 'history' | 'custom' | 'community'>(initialTab);
+  
+  // 新增：文本输入相关状态和处理函数
+  const [textInput, setTextInput] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const textFileInputRef = useRef<HTMLInputElement>(null);
+
+  const readTextFile = async (file: File) => {
+    // Allow .txt, .md, .markdown, and text/* types
+    const validExtensions = ['.txt', '.md', '.markdown'];
+    const isValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    const isTextType = file.type.startsWith('text/');
+    
+    if (!isValidExtension && !isTextType) {
+      alert('请上传文本文件 (.txt, .md)');
+      return;
+    }
+    try {
+      const text = await file.text();
+      setTextInput(text);
+    } catch (err) {
+      alert('读取文件失败，请重试');
+    }
+  };
+
+  const handleTextFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        await readTextFile(file);
+        e.target.value = '';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await readTextFile(file);
+    }
+  };
+
+  const handleTextSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!textInput.trim()) {
+      alert('请输入行程文本');
+      return;
+    }
+    onTextSubmit?.(textInput);
+  };
   
   useEffect(() => {
     setView(initialTab);
@@ -234,7 +295,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
           
           <div className="flex items-center gap-2 md:gap-3 overflow-x-auto pb-2 md:pb-0 scrollbar-hide -mx-2 px-2 md:mx-0 md:px-0 w-full md:w-auto">
             <div className="flex items-center bg-stone-100 dark:bg-stone-800/50 rounded-full p-1 border border-stone-200 dark:border-stone-700/50 flex-shrink-0">
-              {['plan', 'custom', 'history'].map((tab) => (
+              {['plan', 'text', 'custom', 'history'].map((tab) => (
                 <button
                   key={tab}
                   type="button"
@@ -245,7 +306,7 @@ const TravelForm: React.FC<TravelFormProps> = ({
                       : 'text-stone-500 dark:text-stone-400'
                   }`}
                 >
-                  {tab === 'plan' ? '规划' : tab === 'custom' ? '自定义' : '历史'}
+                  {tab === 'plan' ? '规划' : tab === 'text' ? '文本' : tab === 'custom' ? '自定义' : '历史'}
                 </button>
               ))}
             </div>
@@ -470,6 +531,77 @@ const TravelForm: React.FC<TravelFormProps> = ({
                 </span>
               ) : (
                 '开启规划'
+              )}
+            </button>
+          </form>
+        ) : view === 'text' ? (
+          <form onSubmit={handleTextSubmit} className="space-y-5 md:space-y-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <label className={labelClasses.replace('mb-1', 'mb-0')}>行程文本</label>
+                <div className="flex gap-2">
+                    <input 
+                        ref={textFileInputRef} 
+                        type="file" 
+                        accept=".txt,.md,.markdown,text/plain,text/markdown" 
+                        className="hidden" 
+                        onChange={handleTextFileImport} 
+                    />
+                    <button
+                        type="button"
+                        onClick={() => textFileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg transition-colors"
+                        title="上传文本文件"
+                    >
+                        <Upload size={14} />
+                        <span>上传文件</span>
+                    </button>
+                </div>
+              </div>
+              
+              <div 
+                className="relative group"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <textarea
+                  required
+                  rows={10}
+                  placeholder="在此粘贴您的行程安排，或者直接将文本文件(.txt, .md)拖拽到此处。AI将为您整理成结构化的行程单。"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  className={`${inputClasses} resize-none transition-all duration-300 ${isDragging ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' : ''}`}
+                />
+                
+                {isDragging && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-xl border-2 border-dashed border-emerald-500 animate-fade-in">
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-full mb-3 text-emerald-600 dark:text-emerald-400">
+                        <Upload size={32} />
+                    </div>
+                    <p className="text-emerald-800 dark:text-emerald-200 font-bold text-lg">释放以上传文件</p>
+                    <p className="text-emerald-600/70 dark:text-emerald-400/70 text-sm mt-1">支持 .txt, .md 格式</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || !textInput.trim()}
+              className={`w-full py-3 md:py-4 px-6 rounded-2xl text-white font-serif font-bold tracking-widest shadow-xl transition-all duration-300 mt-4 md:mt-6 text-sm md:text-base ${
+                isLoading || !textInput.trim()
+                  ? 'bg-stone-400 cursor-not-allowed'
+                  : 'bg-emerald-800 hover:bg-emerald-900 dark:bg-emerald-700 dark:hover:bg-emerald-600 hover:shadow-2xl hover:-translate-y-1'
+              }`}
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-3">
+                   <Loader2 className="animate-spin" size={18} />
+                   <span className="animate-pulse">AI 正在整理...</span>
+                </span>
+              ) : (
+                '生成行程'
               )}
             </button>
           </form>

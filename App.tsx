@@ -43,15 +43,14 @@ const App: React.FC = () => {
   const [pickedDestination, setPickedDestination] = useState<string | null>(null);
 
   // 模型选择相关状态
-  const [model, setModel] = useState<string>('qwen-plus');
+  const [model, setModel] = useState<string>('qwen-plus-2025-12-01');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
   const models = [
     { value: 'qwen-flash', label: 'Qwen Flash' },
-    { value: 'qwen-plus', label: 'Qwen Plus' },
-    { value: 'qwen-max', label: 'Qwen Max' },
-    { value: 'qwen3-max', label: 'Qwen3 Max' },
+    { value: 'qwen-plus-2025-12-01', label: 'Qwen Plus' },
+    { value: 'qwen3-max-preview', label: 'Qwen3 Max Preview' },
     { value: 'qwen3-235b-a22b-instruct-2507', label: 'Qwen3 235B' },
-    { value: 'deepseek-v3.2-exp', label: 'DeepSeek V3.2 Exp' }
+    { value: 'deepseek-v3.2', label: 'DeepSeek V3.2' }
   ];
 
   // --- 新增：处理启动动画的平滑过渡 ---
@@ -216,6 +215,56 @@ const App: React.FC = () => {
     
     try {
       const result = await generateItinerary(data, (partialResult, isDone) => {
+        const updatedPartialItinerary = {
+          ...initialPartialItinerary,
+          ...partialResult,
+          days: partialResult.days || initialPartialItinerary.days
+        };
+        
+        setPartialItinerary(updatedPartialItinerary);
+        
+        if (isDone) {
+          setItinerary(updatedPartialItinerary as Itinerary);
+          setHistory(prev => [updatedPartialItinerary as Itinerary, ...prev]);
+          setStreaming(false);
+        }
+      }, 0, model);
+    } catch (err) {
+      setError("生成行程失败，请重试。");
+      setStreaming(false);
+      setIsFormVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTextSubmit = async (text: string) => {
+    setLoading(true);
+    setStreaming(true);
+    setError(null);
+    setPartialItinerary(null);
+    setItinerary(null);
+    
+    setIsFormVisible(false);
+    setSelectedDay(null);
+    setFocusedActivity(null);
+    setIsEditing(false); 
+    setActiveTab('plan');
+    setNavigationSource('form');
+    
+    const initialPartialItinerary: Partial<Itinerary> = {
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      tripTitle: "AI正在解析行程...",
+      summary: "正在根据文本生成行程摘要...",
+      days: [], 
+      visualTheme: "default"
+    };
+    
+    setPartialItinerary(initialPartialItinerary);
+    
+    try {
+      const result = await generateItinerary(text, (partialResult, isDone) => {
         const updatedPartialItinerary = {
           ...initialPartialItinerary,
           ...partialResult,
@@ -447,6 +496,7 @@ const App: React.FC = () => {
                       // 传递给表单的 Props
                       onOpenDestinationPicker={() => setIsDestinationPickerOpen(true)}
                       pickedDestination={pickedDestination}
+                      onTextSubmit={handleTextSubmit}
                     />
                     {error && (
                       <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 rounded-xl border border-red-200 dark:border-red-900/50 text-sm">

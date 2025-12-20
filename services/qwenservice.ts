@@ -97,12 +97,80 @@ function tryParseJSON(jsonStr: string): any {
 // 最大重试次数
 const MAX_RETRIES = 3;
 
-export const generateItinerary = async (data: TripFormData, streamCallback?: StreamCallback, retryCount: number = 0, model: string = "qwen-plus"): Promise<Itinerary> => {
+export const generateItinerary = async (data: TripFormData | string, streamCallback?: StreamCallback, retryCount: number = 0, model: string = "qwen-plus"): Promise<Itinerary> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
   }
 
-  const prompt = `
+  let prompt = '';
+  let expectedDuration = 1;
+
+  if (typeof data === 'string') {
+    expectedDuration = 3; // 默认值，实际由AI决定
+    prompt = `
+      请根据以下文本内容整理并生成详细的行程安排。
+      文本内容:
+      ${data}
+
+      【特别注意】
+      如果用户提供的文本内容已经是一份非常完整、详细的行程安排（包含具体的时间点、地点、活动描述等），请**完全一字不差**地将其转换为指定的JSON格式，不要进行任何删减、概括或“优化”。保留所有原始细节。
+      只有当文本内容比较零散、简略或不完整时，才需要你进行整理、补充和润色。
+
+      【强制要求】请严格按照以下格式和顺序生成JSON内容，确保流式输出效果：
+      1. 必须使用简体中文回答。
+      2. 必须逐段生成JSON内容，确保流式输出效果。
+      3. 必须先生成基本信息（tripTitle、summary、visualTheme），再生成days数组，然后生成activities，最后生成notes数组。
+      4. 必须确保每次输出的JSON片段都能被部分解析。
+      5. 每一项活动必须提供准确的纬度和经度坐标（如果文本中未提及，请自行推断合理的坐标）。
+      6. 响应必须是符合所提供结构的有效JSON字符串。
+      7. 行程安排要合理，考虑路程时间。
+      8. visualTheme 字段必须严格从列表 ['urban','beach','rainforest','desert','lake','grassland','canyon','snow','island','glacier','ancient_town','historic','port','countryside','tropical','mountain','sakura','autumn'] 中选择一个。
+      9. 请根据文本内容智能推断行程天数。如果无法推断，请默认生成3天行程。
+      10. 必须生成5-10条旅行注意事项，包括当地习俗、天气、交通、安全等方面。
+      11. 必须确保JSON格式完全正确，没有语法错误。
+
+      【JSON结构示例】：
+      {
+        "tripTitle": "根据文本生成的行程标题",
+        "summary": "这是一次精彩的行程...",
+        "visualTheme": "urban",
+        "days": [
+          {
+            "day": 1,
+            "theme": "主题",
+            "activities": [
+              {
+                "time": "09:00",
+                "activityName": "活动名称",
+                "description": "详细描述...",
+                "locationName": "地点名称",
+                "coordinates": {
+                  "latitude": 39.9042,
+                  "longitude": 116.4074
+                }
+              }
+            ]
+          }
+        ],
+        "notes": [
+          "注意事项1...",
+          "注意事项2..."
+        ]
+      }
+
+      【输出要求】：
+      - 必须严格按照上述示例格式输出。
+      - 必须确保每个day对象都有day、theme和activities字段。
+      - 必须确保每个activity对象都有time、activityName、description、locationName和coordinates字段。
+      - 必须确保coordinates对象包含latitude和longitude字段。
+      - 必须确保visualTheme字段从指定列表中选择。
+      - 必须生成5-10条旅行注意事项，放在notes数组中。
+      - 必须确保JSON格式完全正确，没有语法错误。
+      - 必须逐段生成内容，确保流式输出效果。
+    `;
+  } else {
+    expectedDuration = parseInt(data.duration.toString()) || 1;
+    prompt = `
     请为一次去${data.destination}的旅行制定详细的行程，时长为${data.duration}天。
     旅客类型: ${data.travelers}。
     预算: ${data.budget}。
@@ -166,6 +234,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
     - 必须确保JSON格式完全正确，没有语法错误。
     - 必须逐段生成内容，确保流式输出效果。
   `;
+  }
 
   try {
     const res = await fetch(endpoint, {
@@ -216,7 +285,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
           return generateItinerary(data, streamCallback, retryCount + 1, model);
         } else {
           // 如果达到最大重试次数，使用预生成的天数结构
-          const duration = parseInt(data.duration.toString()) || 1;
+          const duration = expectedDuration;
           const fallbackDays = Array.from({ length: duration }, (_, i) => ({
             day: i + 1,
             theme: `第${i+1}天行程`,
@@ -284,7 +353,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
 
                 // 如果days数组存在但为空，或者days数组中的某些day对象不完整，进行修复
                 if (partialItinerary.days.length === 0) {
-                  const duration = parseInt(data.duration.toString()) || 1;
+                  const duration = expectedDuration;
                   partialItinerary.days = Array.from({ length: duration }, (_, i) => ({
                     day: i + 1,
                     theme: `第${i+1}天行程`,
@@ -335,7 +404,7 @@ export const generateItinerary = async (data: TripFormData, streamCallback?: Str
         return generateItinerary(data, streamCallback, retryCount + 1, model);
       } else {
         // 如果达到最大重试次数，使用预生成的天数结构
-        const duration = parseInt(data.duration.toString()) || 1;
+        const duration = expectedDuration;
         const fallbackDays = Array.from({ length: duration }, (_, i) => ({
           day: i + 1,
           theme: `第${i+1}天行程`,
