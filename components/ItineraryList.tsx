@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Itinerary, Activity } from '../types';
-import { MapPin, Clock, Edit3, Save, X, History, Plus, Share2, Trash2, RotateCcw, ArrowLeft } from 'lucide-react';
+import { MapPin, Clock, Edit3, Save, X, History, Plus, Share2, Trash2, RotateCcw, ArrowLeft, FileText } from 'lucide-react';
 import { shareItinerary } from '../services/community'
 
 interface ItineraryListProps {
@@ -51,6 +51,51 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
     const safeTitle = (itinerary.tripTitle || 'itinerary').replace(/[^\w\u4e00-\u9fa5]+/g, '-');
     a.href = URL.createObjectURL(blob);
     a.download = `wanderplan-${safeTitle}-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const handleExportMarkdown = () => {
+    if (!itinerary) return;
+    const targetItinerary = isEditing && editedItinerary ? editedItinerary : itinerary;
+    
+    let md = `# **${targetItinerary.tripTitle}**\n\n`;
+    
+    if (targetItinerary.shareId) {
+        md += `[WanderPlan](https://wanderplan.glassous.top/?share=${targetItinerary.shareId})\n\n`;
+    }
+    
+    md += `**摘要** ${targetItinerary.summary}\n\n`;
+    
+    md += `## **📅 行程安排**\n\n`;
+    
+    targetItinerary.days.forEach(day => {
+        md += `### **第 ${day.day} 天: ${day.theme}**\n\n`;
+        
+        day.activities.forEach(act => {
+            md += `* **${act.time} - ${act.activityName}**\n`;
+            md += `  * **描述**: ${act.description}\n`;
+            md += `  * **地点**: ${act.locationName}\n`;
+            if (act.coordinates && (act.coordinates.latitude !== 0 || act.coordinates.longitude !== 0)) {
+                md += `  * [map:${act.coordinates.latitude},${act.coordinates.longitude}]\n`;
+            }
+        });
+        md += `\n`;
+    });
+    
+    if (targetItinerary.notes && targetItinerary.notes.length > 0) {
+        md += `## **📝 注意事项**\n\n`;
+        targetItinerary.notes.forEach((note, index) => {
+            md += `${index + 1}. ${note}\n`;
+        });
+        md += `\n`;
+    }
+
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    const safeTitle = (targetItinerary.tripTitle || 'itinerary').replace(/[^\w\u4e00-\u9fa5]+/g, '-');
+    a.href = URL.createObjectURL(blob);
+    a.download = `wanderplan-${safeTitle}-${new Date().toISOString().slice(0,10)}.md`;
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -207,9 +252,17 @@ const ItineraryList: React.FC<ItineraryListProps> = ({
           onClick={handleExport}
           disabled={streaming}
           className={`p-2 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors border border-transparent hover:border-stone-200 dark:hover:border-stone-700 ${streaming ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title="导出"
+          title="导出 JSON"
         >
           <Save size={18} />
+        </button>
+        <button
+          onClick={handleExportMarkdown}
+          disabled={streaming}
+          className={`p-2 rounded-full text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-700 ${streaming ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title="导出 Markdown"
+        >
+          <FileText size={18} />
         </button>
       </div>
     </div>
